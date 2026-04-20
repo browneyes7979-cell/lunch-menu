@@ -1,127 +1,159 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>오늘 뭐 먹지?</title>
-    <style>
-        :root { --primary: #FF5722; --secondary: #4CAF50; --bg: #F8F9FA; }
-        body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .container { background: white; width: 100%; max-width: 450px; border-radius: 24px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-        h1 { text-align: center; color: #333; font-size: 1.5rem; margin-bottom: 24px; }
-        
-        /* 메뉴 리스트 영역 */
-        .menu-list-container { border: 1px solid #eee; border-radius: 12px; height: 200px; overflow-y: auto; padding: 12px; margin-bottom: 20px; background: #fafafa; }
-        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #eee; background: white; margin-bottom: 4px; border-radius: 6px; }
-        .delete-btn { color: #ff4d4d; border: none; background: none; font-weight: bold; cursor: pointer; }
+<meta charset="UTF-8">
+<title>스타 대시보드</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-        /* 입력 영역 */
-        .input-group { display: flex; gap: 8px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 10px; outline: none; transition: 0.3s; }
-        input:focus { border-color: var(--secondary); }
-        .btn-add { background: var(--secondary); color: white; padding: 0 16px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
-
-        /* 메인 액션 버튼 */
-        .btn-main { background: var(--primary); color: white; width: 100%; padding: 18px; font-size: 1.3rem; font-weight: bold; border: none; border-radius: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(255,87,34,0.3); }
-        .btn-main:active { transform: scale(0.96); }
-        .footer-text { text-align: center; font-size: 0.8rem; color: #999; margin-top: 15px; }
-    </style>
+<style>
+body {
+  font-family: Arial;
+  padding: 15px;
+  background: #f5f5f5;
+}
+button {
+  padding: 10px;
+  margin: 5px 0;
+}
+.card {
+  background: white;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 10px;
+}
+</style>
 </head>
+
 <body>
 
-<div class="container">
-    <h1>🍱 오늘 뭐 먹지?</h1>
-    
-    <div class="input-group">
-        <input type="text" id="menuInput" placeholder="추가하고 싶은 메뉴 입력">
-        <button class="btn-add" onclick="addMenu()">추가</button>
-    </div>
+<h2>🔥 스타 대시보드</h2>
 
-    <div class="menu-list-container" id="menuListView">
-        </div>
+<!-- 입력 -->
+<h3>경기 저장</h3>
+<button onclick="saveGame()">테스트 경기 저장</button>
 
-    <button class="btn-main" onclick="pickMenu()">🎲 메뉴 랜덤 뽑기!</button>
-    <p class="footer-text">메뉴를 고르면 지도 검색으로 연결됩니다.</p>
-</div>
+<!-- 대시보드 -->
+<h3>🏆 랭킹</h3>
+<div id="dashboard"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script>
-    // 1. 한국인 선호 점심 메뉴 40종 기본 탑재
-    const defaultMenus = [
-        "김치찌개", "돈까스", "초밥", "마라탕", "햄버거", "제육볶음", "쌀국수", "파스타",
-        "김치볶음밥", "된장찌개", "순두부찌개", "청국장", "육개장", "갈비탕", "설렁탕", 
-        "순대국", "뼈해장국", "부대찌개", "제육덮밥", "오징어덮밥", "불고기백반", "비빔밥", 
-        "돌솥비빔밥", "짜장면", "짬뽕", "볶음밥", "탕수육", "잡채밥", "냉면", "칼국수", 
-        "수제비", "잔치국수", "쫄면", "우동", "소바", "가츠동", "생선구이", "쌈밥", "국밥", "샌드위치"
-    ];
 
-    // 로컬 스토리지에서 불러오거나 기본값 사용
-    let menus = JSON.parse(localStorage.getItem('lunchMenusV2')) || defaultMenus;
+// 🔥 네 config 그대로 사용
+const firebaseConfig = {
+  apiKey: "AIzaSyDKvEB_SrvDSADbqxX0LTgejksxtLt4G6U",
+  authDomain: "starcraft-dashboard.firebaseapp.com",
+  databaseURL: "https://starcraft-dashboard-default-rtdb.firebaseio.com/",
+  projectId: "starcraft-dashboard",
+  storageBucket: "starcraft-dashboard.firebasestorage.app",
+  messagingSenderId: "153513214633",
+  appId: "1:153513214633:web:2fa14175883c4634131fb8"
+};
 
-    const menuListView = document.getElementById('menuListView');
-    const menuInput = document.getElementById('menuInput');
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    // 2. 화면 렌더링 함수
-    function render() {
-        menuListView.innerHTML = '';
-        menus.forEach((menu, index) => {
-            const item = document.createElement('div');
-            item.className = 'menu-item';
-            item.innerHTML = `
-                <span>${menu}</span>
-                <button class="delete-btn" onclick="deleteMenu(${index})">삭제</button>
-            `;
-            menuListView.appendChild(item);
+
+// 🔥 테스트 데이터 저장
+function saveGame() {
+
+  const game = {
+    date: new Date().toLocaleDateString(),
+    games: [
+      {
+        teams: {
+          A: ["상필","홍길동"],
+          B: ["김철수","이영희"]
+        },
+        winner: Math.random() > 0.5 ? "A" : "B"
+      }
+    ]
+  };
+
+  db.ref("games").push(game);
+}
+
+
+// 🔥 데이터 불러오기 + 통계
+db.ref("games").on("value", snapshot => {
+
+  let data = [];
+
+  snapshot.forEach(child => {
+    data.push(child.val());
+  });
+
+  const stats = buildStats(data);
+  renderDashboard(stats);
+});
+
+
+// 🔥 개인 통계
+function buildStats(data) {
+
+  let stats = {};
+
+  data.forEach(match => {
+
+    match.games.forEach(g => {
+
+      const winner = g.winner;
+
+      Object.keys(g.teams).forEach(team => {
+
+        g.teams[team].forEach(name => {
+
+          if (!stats[name]) stats[name] = {win:0, lose:0};
+
+          if (team === winner) stats[name].win++;
+          else stats[name].lose++;
         });
-        localStorage.setItem('lunchMenusV2', JSON.stringify(menus));
-    }
+      });
+    });
+  });
 
-    // 3. 메뉴 추가 기능
-    function addMenu() {
-        const val = menuInput.value.trim();
-        if (val) {
-            menus.unshift(val); // 새 메뉴를 맨 위에 추가
-            menuInput.value = '';
-            render();
-        }
-    }
+  return stats;
+}
 
-    // 4. 메뉴 삭제 기능
-    function deleteMenu(index) {
-        if(confirm("이 메뉴를 리스트에서 뺄까요?")) {
-            menus.splice(index, 1);
-            render();
-        }
-    }
 
-    // 5. 핵심: 랜덤 뽑기 + 지도 연동 (카카오맵 기준)
-    function pickMenu() {
-        if (menus.length === 0) return alert("리스트가 비어있어요!");
+// 🔥 화면 표시
+function renderDashboard(stats) {
 
-        // 애니메이션 효과를 위해 버튼 잠깐 비활성화
-        const btn = document.querySelector('.btn-main');
-        btn.innerText = "두구두구...";
-        btn.disabled = true;
+  let arr = Object.keys(stats).map(name => {
 
-        setTimeout(() => {
-            const picked = menus[Math.floor(Math.random() * menus.length)];
-            btn.innerText = "🎲 메뉴 랜덤 뽑기!";
-            btn.disabled = false;
+    let s = stats[name];
+    let total = s.win + s.lose;
+    let rate = total ? s.win / total : 0;
 
-            const goSearch = confirm(`오늘의 추천 메뉴는 [ ${picked} ] 입니다!\n근처 맛집을 검색할까요?`);
-            
-            if (goSearch) {
-                // 카카오맵 검색 주소로 이동 (범용성 높음)
-                const searchUrl = `https://map.kakao.com/link/search/${encodeURIComponent(picked + " 맛집")}`;
-                window.open(searchUrl, '_blank');
-            }
-        }, 600);
-    }
+    return {
+      name,
+      win: s.win,
+      lose: s.lose,
+      rate
+    };
+  });
 
-    // 엔터키 지원
-    menuInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addMenu(); });
+  // 승률순 정렬
+  arr.sort((a,b)=>b.rate - a.rate);
 
-    // 초기 실행
-    render();
+  let html = "";
+
+  arr.forEach((p, idx) => {
+
+    html += `
+      <div class="card">
+        ${idx+1}위 - ${p.name}<br>
+        ${p.win}승 ${p.lose}패 (${(p.rate*100).toFixed(1)}%)
+      </div>
+    `;
+  });
+
+  document.getElementById("dashboard").innerHTML = html;
+}
+
 </script>
 
 </body>
