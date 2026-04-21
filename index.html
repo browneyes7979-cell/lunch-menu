@@ -5,26 +5,46 @@
 <title>스타 대시보드</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 body {
   font-family: Arial;
-  padding: 15px;
-  background: #f5f5f5;
-}
-button {
   padding: 10px;
-  margin: 5px 0;
+  background: #f2f2f2;
 }
+
+h2 { text-align:center; }
+
 .card {
   background: white;
-  padding: 10px;
+  padding: 12px;
   margin: 10px 0;
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-select {
-  padding: 5px;
-  margin: 3px;
+
+button {
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #ff6600;
+  color: white;
+  font-weight: bold;
 }
+
+select, input {
+  width: 48%;
+  padding: 8px;
+  margin: 3px 1%;
+}
+
+.flex {
+  display: flex;
+  justify-content: space-between;
+}
+
 </style>
 </head>
 
@@ -32,229 +52,227 @@ select {
 
 <h2>🔥 스타 대시보드</h2>
 
-<!-- 경기 입력 -->
+<div class="card">
 <h3>경기 입력</h3>
 
-A팀<br>
+<div class="flex">
 <select id="playerA1"></select>
 <select id="playerA2"></select>
+</div>
 
-<br><br>
-
-B팀<br>
+<div class="flex">
 <select id="playerB1"></select>
 <select id="playerB2"></select>
+</div>
 
-<br><br>
-
-승리팀<br>
 <select id="winner">
-  <option value="A">A팀</option>
-  <option value="B">B팀</option>
+  <option value="A">A팀 승</option>
+  <option value="B">B팀 승</option>
 </select>
 
-<br><br>
-
 <button onclick="saveGame()">경기 저장</button>
+</div>
 
-<hr>
-
-<!-- 선수 추가 -->
+<div class="card">
 <h3>선수 추가</h3>
 <input id="newPlayer" placeholder="이름 입력">
 <button onclick="addPlayer()">추가</button>
+</div>
 
-<hr>
-
-<!-- 랭킹 -->
-<h3>🏆 랭킹</h3>
+<div class="card">
+<h3>🏆 랭킹 (MMR)</h3>
 <div id="dashboard"></div>
+</div>
 
-<hr>
+<div class="card">
+<h3>📊 승률 변화</h3>
+<canvas id="chart"></canvas>
+</div>
 
-<!-- 최근 경기 -->
+<div class="card">
 <h3>📅 최근 경기</h3>
 <div id="recent"></div>
+</div>
 
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDKvEB_SrvDSADbqxX0LTgejksxtLt4G6U",
-  authDomain: "starcraft-dashboard.firebaseapp.com",
-  databaseURL: "https://starcraft-dashboard-default-rtdb.firebaseio.com/",
-  projectId: "starcraft-dashboard",
-  storageBucket: "starcraft-dashboard.firebasestorage.app",
-  messagingSenderId: "153513214633",
-  appId: "1:153513214633:web:2fa14175883c4634131fb8"
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-
-// 🔥 선수 목록
 let players = ["상필","홍길동","김철수","이영희"];
 
-// 🔥 셀렉트 채우기
 function updateSelects() {
-  ["playerA1","playerA2","playerB1","playerB2"].forEach(id => {
-    let el = document.getElementById(id);
-    el.innerHTML = "";
-    players.forEach(p => {
-      el.innerHTML += `<option>${p}</option>`;
-    });
+  ["playerA1","playerA2","playerB1","playerB2"].forEach(id=>{
+    let el=document.getElementById(id);
+    el.innerHTML="";
+    players.forEach(p=>el.innerHTML+=`<option>${p}</option>`);
   });
 }
 updateSelects();
 
-
-// 🔥 선수 추가
-function addPlayer() {
-  let name = document.getElementById("newPlayer").value;
-  if (!name) return;
-
-  players.push(name);
+function addPlayer(){
+  let n=document.getElementById("newPlayer").value;
+  if(!n)return;
+  players.push(n);
   updateSelects();
-  document.getElementById("newPlayer").value = "";
 }
 
-
-// 🔥 경기 저장
-function saveGame() {
-
-  const game = {
-    date: new Date().toLocaleDateString(),
-    games: [
-      {
-        teams: {
-          A: [
-            document.getElementById("playerA1").value,
-            document.getElementById("playerA2").value
-          ],
-          B: [
-            document.getElementById("playerB1").value,
-            document.getElementById("playerB2").value
-          ]
-        },
-        winner: document.getElementById("winner").value
-      }
-    ]
+function saveGame(){
+  const game={
+    date:new Date().toLocaleDateString(),
+    games:[{
+      teams:{
+        A:[playerA1.value,playerA2.value],
+        B:[playerB1.value,playerB2.value]
+      },
+      winner:winner.value
+    }]
   };
-
   db.ref("games").push(game);
 }
 
-
-// 🔥 데이터 불러오기
-db.ref("games").on("value", snapshot => {
-
-  let data = [];
-  let recent = [];
-
-  snapshot.forEach(child => {
-    let val = child.val();
-    val.key = child.key;
-    data.push(val);
-    recent.push(val);
+db.ref("games").on("value",snap=>{
+  let data=[];
+  snap.forEach(c=>{
+    let v=c.val();
+    v.key=c.key;
+    data.push(v);
   });
 
-  const stats = buildStats(data);
-  renderDashboard(stats);
-  renderRecent(recent);
+  renderAll(data);
 });
 
 
-// 🔥 통계
-function buildStats(data) {
+// 🔥 MMR 계산
+function calcMMR(data){
+  let mmr={};
+  let K=32;
 
-  let stats = {};
+  data.forEach(m=>{
+    m.games.forEach(g=>{
+      let A=g.teams.A;
+      let B=g.teams.B;
 
-  data.forEach(match => {
+      A.concat(B).forEach(p=>{
+        if(!mmr[p]) mmr[p]=1000;
+      });
 
-    match.games.forEach(g => {
+      let avgA=(mmr[A[0]]+mmr[A[1]])/2;
+      let avgB=(mmr[B[0]]+mmr[B[1]])/2;
 
-      const winner = g.winner;
+      let EA=1/(1+Math.pow(10,(avgB-avgA)/400));
+      let EB=1-EA;
 
-      Object.keys(g.teams).forEach(team => {
+      let SA=g.winner==="A"?1:0;
+      let SB=1-SA;
 
-        g.teams[team].forEach(name => {
+      A.forEach(p=> mmr[p]+=K*(SA-EA));
+      B.forEach(p=> mmr[p]+=K*(SB-EB));
+    });
+  });
 
-          if (!stats[name]) stats[name] = {win:0, lose:0};
+  return mmr;
+}
 
-          if (team === winner) stats[name].win++;
-          else stats[name].lose++;
+
+// 🔥 렌더 전체
+function renderAll(data){
+
+  let stats={};
+  let history={};
+
+  data.forEach(m=>{
+    m.games.forEach(g=>{
+      Object.keys(g.teams).forEach(t=>{
+        g.teams[t].forEach(p=>{
+          if(!stats[p]) stats[p]={win:0,lose:0};
+          if(!history[p]) history[p]=[];
+
+          if(g.winner===t){
+            stats[p].win++;
+            history[p].push(1);
+          }else{
+            stats[p].lose++;
+            history[p].push(0);
+          }
         });
       });
     });
   });
 
-  return stats;
-}
+  let mmr=calcMMR(data);
 
-
-// 🔥 랭킹 출력
-function renderDashboard(stats) {
-
-  let arr = Object.keys(stats).map(name => {
-
-    let s = stats[name];
-    let total = s.win + s.lose;
-    let rate = total ? s.win / total : 0;
-
-    return { name, win: s.win, lose: s.lose, rate };
+  let arr=Object.keys(stats).map(p=>{
+    let s=stats[p];
+    let rate=s.win/(s.win+s.lose||1);
+    return {p,...s,rate,mmr:mmr[p]||1000};
   });
 
-  arr.sort((a,b)=>b.rate - a.rate);
+  arr.sort((a,b)=>b.mmr-a.mmr);
 
-  let html = "";
-
-  arr.forEach((p, idx) => {
-    html += `
+  document.getElementById("dashboard").innerHTML=
+    arr.map((x,i)=>`
       <div class="card">
-        ${idx+1}위 - ${p.name}<br>
-        ${p.win}승 ${p.lose}패 (${(p.rate*100).toFixed(1)}%)
+      ${i+1}위 ${x.p}<br>
+      MMR: ${x.mmr.toFixed(0)}<br>
+      ${x.win}승 ${x.lose}패 (${(x.rate*100).toFixed(1)}%)
       </div>
-    `;
-  });
+    `).join("");
 
-  document.getElementById("dashboard").innerHTML = html;
+  renderChart(history);
+  renderRecent(data);
 }
 
 
-// 🔥 최근 경기 + 삭제
-function renderRecent(list) {
+// 🔥 그래프
+let chart;
+function renderChart(history){
+  let p=Object.keys(history)[0];
+  if(!p)return;
 
-  list.reverse();
+  let h=history[p].slice(-10);
+  let data=h.map((_,i)=>h.slice(0,i+1).reduce((a,b)=>a+b)/ (i+1));
 
-  let html = "";
+  if(chart) chart.destroy();
 
-  list.forEach(g => {
+  chart=new Chart(document.getElementById("chart"),{
+    type:"line",
+    data:{
+      labels:data.map((_,i)=>i+1),
+      datasets:[{label:p,data}]
+    }
+  });
+}
 
-    let game = g.games[0];
 
-    html += `
+// 🔥 최근 경기
+function renderRecent(data){
+  data.reverse();
+  document.getElementById("recent").innerHTML=
+    data.map(g=>{
+      let game=g.games[0];
+      return `
       <div class="card">
-        ${g.date}<br>
-        ${game.teams.A.join(", ")} vs ${game.teams.B.join(", ")}<br>
-        승리: ${game.winner}
-        <br>
-        <button onclick="deleteGame('${g.key}')">삭제</button>
-      </div>
-    `;
-  });
-
-  document.getElementById("recent").innerHTML = html;
+      ${g.date}<br>
+      ${game.teams.A.join(",")} vs ${game.teams.B.join(",")}<br>
+      승리:${game.winner}
+      <button onclick="del('${g.key}')">삭제</button>
+      </div>`;
+    }).join("");
 }
 
-
-// 🔥 삭제 기능
-function deleteGame(key) {
-  db.ref("games/" + key).remove();
+function del(k){
+  db.ref("games/"+k).remove();
 }
 
 </script>
