@@ -1,99 +1,148 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <title>스타 대시보드</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
-body { margin:0; font-family:Arial; background:#f2f2f2; }
-.tabs { display:flex; background:#222; }
-.tabs button {
-  flex:1; padding:12px; color:white; border:none;
-}
-.tabs button.active { background:#ff6600; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+         background: #f2f2f2; color: #222; }
+  header { background: #222; color: #fff; padding: 10px 14px; display: flex;
+           justify-content: space-between; align-items: center; }
+  header .who { font-size: 13px; opacity: .85; }
+  .tabs { display: flex; background: #222; }
+  .tabs button { flex: 1; padding: 12px 6px; color: #fff; border: none;
+                 background: transparent; font-size: 14px; cursor: pointer; }
+  .tabs button.active { background: #ff6600; font-weight: 600; }
 
-.page { display:none; padding:10px; }
-.page.active { display:block; }
+  .page { display: none; padding: 10px; }
+  .page.active { display: block; }
 
-.card {
-  background:white; padding:12px; margin:10px 0;
-  border-radius:10px;
-}
+  .card { background: #fff; padding: 14px; margin: 10px 0; border-radius: 10px;
+          box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .card h3 { margin: 0 0 10px 0; font-size: 16px; }
+  .card h4 { margin: 12px 0 6px 0; font-size: 14px; }
 
-input, select, button {
-  width:100%; padding:10px; margin:5px 0;
-}
+  input, select, button { width: 100%; padding: 10px; margin: 4px 0;
+                          border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  button { background: #ff6600; color: #fff; border: none; cursor: pointer; font-weight: 600; }
+  button.secondary { background: #666; }
+  button.danger { background: #c0392b; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
 
-.player { padding:8px; border-bottom:1px solid #ddd; cursor:pointer; }
-.player:hover { background:#eee; }
+  .player { padding: 10px; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center; }
+  .player:last-child { border-bottom: none; }
+  .player .name { flex: 1; cursor: pointer; }
+  .player .del { width: auto; padding: 4px 10px; background: #c0392b;
+                 font-size: 12px; margin: 0; }
 
-.flex { display:flex; gap:5px; }
+  .checklist label { display: flex; align-items: center; gap: 8px; padding: 6px 0;
+                     border-bottom: 1px solid #f2f2f2; cursor: pointer; }
+  .checklist input { width: auto; margin: 0; }
+
+  .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  .team { background: #f7f7f7; padding: 10px; border-radius: 8px; }
+  .team.A { border-left: 4px solid #2980b9; }
+  .team.B { border-left: 4px solid #c0392b; }
+  .team b { display: block; margin-bottom: 6px; }
+
+  .rank-row { display: flex; justify-content: space-between; align-items: center;
+              padding: 10px 14px; background: #fff; margin: 6px 0;
+              border-radius: 8px; border-left: 4px solid #ff6600; }
+  .rank-row .rk { width: 30px; font-weight: 700; color: #ff6600; }
+  .rank-row .nm { flex: 1; }
+  .rank-row .sc { color: #666; font-size: 13px; }
+
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+           background: #222; color: #fff; padding: 10px 16px; border-radius: 6px;
+           font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none;
+           z-index: 1000; max-width: 90%; }
+  #toast.show { opacity: 1; }
+  #toast.err { background: #c0392b; }
+
+  .empty { color: #999; font-size: 13px; text-align: center; padding: 20px; }
+  .muted { color: #888; font-size: 12px; }
+
+  #loginBox { max-width: 360px; margin: 60px auto; text-align: center; }
 </style>
 </head>
-
 <body>
 
 <div id="loginBox" class="card">
-  <button onclick="login()">Google 로그인</button>
+  <h3>스타 대시보드</h3>
+  <p class="muted">Google 계정으로 로그인 후 이용할 수 있습니다.</p>
+  <button id="btnLogin">Google 로그인</button>
 </div>
 
 <div id="app" style="display:none;">
+  <header>
+    <div><b>스타 대시보드</b></div>
+    <div class="who">
+      <span id="userName"></span>
+      <button id="btnLogout" class="secondary" style="width:auto; padding:4px 10px; font-size:12px; margin-left:8px;">로그아웃</button>
+    </div>
+  </header>
 
-<div class="tabs">
-  <button onclick="tab(event,'players')" class="active">선수관리</button>
-  <button onclick="tab(event,'game')">경기입력</button>
-  <button onclick="tab(event,'rank')">랭킹</button>
-</div>
-
-<!-- 선수관리 -->
-<div id="players" class="page active">
-
-  <div class="card">
-    <h3>선수 추가</h3>
-    <input id="newPlayer" placeholder="이름 입력">
-    <button onclick="addPlayer()">추가</button>
+  <div class="tabs">
+    <button data-tab="players" class="active">선수관리</button>
+    <button data-tab="game">경기입력</button>
+    <button data-tab="rank">랭킹</button>
   </div>
 
-  <div class="card">
-    <h3>선수 목록</h3>
-    <div id="playerList"></div>
+  <!-- 선수관리 -->
+  <div id="players" class="page active">
+    <div class="card">
+      <h3>선수 추가</h3>
+      <input id="newPlayer" placeholder="이름 입력" maxlength="20">
+      <button id="btnAddPlayer">추가</button>
+    </div>
+    <div class="card">
+      <h3>선수 목록 <span class="muted" id="playerCount"></span></h3>
+      <div id="playerList"></div>
+    </div>
+    <div id="playerDetail" class="card" style="display:none;"></div>
   </div>
 
-  <div id="playerDetail" class="card" style="display:none;"></div>
+  <!-- 경기 입력 -->
+  <div id="game" class="page">
+    <div class="card">
+      <h3>경기 입력</h3>
+      <label class="muted">경기 날짜</label>
+      <input type="date" id="date">
 
-</div>
+      <h4>참가 선수 선택</h4>
+      <div id="playerSelect" class="checklist"></div>
 
-<!-- 경기 입력 -->
-<div id="game" class="page">
+      <button id="btnAutoTeam" class="secondary">팀 자동 구성</button>
+      <div id="teamBox"></div>
 
-  <div class="card">
-    <h3>경기 입력</h3>
+      <label class="muted">승리팀</label>
+      <select id="winner">
+        <option value="A">A팀 승</option>
+        <option value="B">B팀 승</option>
+      </select>
 
-    <input type="date" id="date">
+      <button id="btnSaveGame">경기 저장</button>
+    </div>
 
-    <h4>참가 선수 선택</h4>
-    <div id="playerSelect"></div>
-
-    <button onclick="autoTeam()">팀 자동 구성</button>
-
-    <div id="teamBox"></div>
-
-    <select id="winner">
-      <option value="A">A팀 승</option>
-      <option value="B">B팀 승</option>
-    </select>
-
-    <button onclick="saveGame()">경기 저장</button>
-
+    <div class="card">
+      <h3>최근 경기</h3>
+      <div id="recentGames"></div>
+    </div>
   </div>
 
+  <!-- 랭킹 -->
+  <div id="rank" class="page">
+    <div class="card">
+      <h3>랭킹 (MMR 기준)</h3>
+      <div id="rankList"></div>
+    </div>
+  </div>
 </div>
 
-<!-- 랭킹 -->
-<div id="rank" class="page"></div>
-
-</div>
+<div id="toast"></div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -101,201 +150,333 @@ input, select, button {
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
 <script>
+"use strict";
 
+/* ------------------ Firebase 초기화 ------------------ */
 const firebaseConfig = {
   apiKey: "AIzaSyDKvEB_SrvDSADbqxX0LTgejksxtLt4G6U",
   authDomain: "starcraft-dashboard.firebaseapp.com",
   databaseURL: "https://starcraft-dashboard-default-rtdb.firebaseio.com/",
   projectId: "starcraft-dashboard"
 };
-
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db   = firebase.database();
 const auth = firebase.auth();
 
-// 로그인
-function login(){
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithRedirect(provider);
+/* ------------------ 공용 유틸 ------------------ */
+const $  = (id) => document.getElementById(id);
+const qs = (sel, root=document) => root.querySelector(sel);
+const qsa= (sel, root=document) => [...root.querySelectorAll(sel)];
+
+function toast(msg, isError=false) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.toggle("err", isError);
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove("show"), 2500);
 }
 
-auth.onAuthStateChanged(user=>{
-  if(user){
-    loginBox.style.display="none";
-    app.style.display="block";
+/* ------------------ 로그인 ------------------ */
+$("btnLogin").addEventListener("click", async () => {
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // 모바일/데스크톱 모두에서 잘 동작하도록 popup 우선 시도
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    // popup이 막히면 redirect로 폴백
+    if (err && (err.code === "auth/popup-blocked" || err.code === "auth/operation-not-supported-in-this-environment")) {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithRedirect(provider);
+    } else {
+      toast("로그인 실패: " + (err.message || err), true);
+    }
   }
 });
 
-// 탭
-function tab(e,id){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  e.target.classList.add("active");
-}
+$("btnLogout").addEventListener("click", () => auth.signOut());
 
-// 날짜 기본
-date.value = new Date().toISOString().split("T")[0];
-
-// 선수 DB
-let players=[];
-
-db.ref("players").on("value",snap=>{
-  players=[];
-  snap.forEach(c=>players.push(c.val()));
-
-  renderPlayers();
-  renderPlayerSelect();
+// redirect 로그인 결과 처리
+auth.getRedirectResult().catch(err => {
+  if (err && err.message) toast("로그인 오류: " + err.message, true);
 });
 
-// 선수 추가
-function addPlayer(){
-  let name=newPlayer.value.trim();
+auth.onAuthStateChanged(user => {
+  if (user) {
+    $("loginBox").style.display = "none";
+    $("app").style.display = "block";
+    $("userName").textContent = user.displayName || user.email || "로그인됨";
+    bootData();
+  } else {
+    $("loginBox").style.display = "block";
+    $("app").style.display = "none";
+  }
+});
 
-  if(name==="") return alert("이름 입력");
-  if(players.includes(name)) return alert("중복 선수");
+/* ------------------ 탭 전환 ------------------ */
+qsa(".tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    qsa(".page").forEach(p => p.classList.remove("active"));
+    qsa(".tabs button").forEach(b => b.classList.remove("active"));
+    $(btn.dataset.tab).classList.add("active");
+    btn.classList.add("active");
+  });
+});
 
-  db.ref("players").push(name);
-  newPlayer.value="";
+/* ------------------ 상태 ------------------ */
+let players = []; // [{id, name}]
+let games   = []; // [{id, date, teams:{A,B}, winner}]
+let lastTeam = null; // {A:[...], B:[...]}
+
+/* ------------------ 초기 날짜 ------------------ */
+$("date").value = new Date().toISOString().split("T")[0];
+
+/* ------------------ 데이터 구독 ------------------ */
+function bootData() {
+  db.ref("players").on("value", snap => {
+    players = [];
+    snap.forEach(c => {
+      const v = c.val();
+      // 과거 데이터 호환: 문자열이면 name으로 변환
+      const name = (typeof v === "string") ? v : (v && v.name) ? v.name : null;
+      if (name) players.push({ id: c.key, name });
+    });
+    renderPlayers();
+    renderPlayerSelect();
+  }, err => toast("선수 로딩 실패: " + err.message, true));
+
+  db.ref("games").on("value", snap => {
+    games = [];
+    snap.forEach(c => {
+      const v = c.val();
+      if (v && v.teams && v.winner) games.push({ id: c.key, ...v });
+    });
+    renderRank();
+    renderRecentGames();
+  }, err => toast("경기 로딩 실패: " + err.message, true));
 }
 
-// 선수 목록
-function renderPlayers(){
-  playerList.innerHTML = players.map(p=>`
-    <div class="player" onclick="showDetail('${p}')">${p}</div>
-  `).join("");
+/* ------------------ 선수 추가 ------------------ */
+$("btnAddPlayer").addEventListener("click", addPlayer);
+$("newPlayer").addEventListener("keydown", e => { if (e.key === "Enter") addPlayer(); });
+
+function addPlayer() {
+  const input = $("newPlayer");
+  const name = input.value.trim();
+  if (!name) return toast("이름을 입력하세요", true);
+  if (players.some(p => p.name === name)) return toast("이미 등록된 선수입니다", true);
+
+  const btn = $("btnAddPlayer");
+  btn.disabled = true;
+  db.ref("players").push({
+    name,
+    createdAt: firebase.database.ServerValue.TIMESTAMP,
+    createdBy: auth.currentUser ? auth.currentUser.uid : null
+  })
+  .then(() => {
+    input.value = "";
+    toast(`"${name}" 추가됨`);
+  })
+  .catch(err => {
+    // 실제 Firebase 에러를 그대로 보여줌 (규칙 거부가 여기서 드러남)
+    toast("추가 실패: " + err.message, true);
+    console.error(err);
+  })
+  .finally(() => { btn.disabled = false; });
 }
 
-// 선수 선택 (체크박스)
-function renderPlayerSelect(){
-  playerSelect.innerHTML = players.map(p=>`
-    <label><input type="checkbox" value="${p}"> ${p}</label><br>
-  `).join("");
+/* ------------------ 선수 목록 ------------------ */
+function renderPlayers() {
+  $("playerCount").textContent = players.length ? `(${players.length}명)` : "";
+  if (!players.length) {
+    $("playerList").innerHTML = '<div class="empty">등록된 선수가 없습니다</div>';
+    return;
+  }
+  $("playerList").innerHTML = players
+    .sort((a,b)=>a.name.localeCompare(b.name, "ko"))
+    .map(p => `
+      <div class="player">
+        <div class="name" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+        <button class="del" data-id="${p.id}" data-name="${escapeHtml(p.name)}">삭제</button>
+      </div>
+    `).join("");
+
+  qsa("#playerList .name").forEach(el =>
+    el.addEventListener("click", () => showDetail(el.dataset.name))
+  );
+  qsa("#playerList .del").forEach(el =>
+    el.addEventListener("click", () => deletePlayer(el.dataset.id, el.dataset.name))
+  );
 }
 
-// 팀 구성
-function autoTeam(){
+function deletePlayer(id, name) {
+  if (!confirm(`"${name}" 선수를 삭제할까요?\n(기존 경기 기록은 남습니다)`)) return;
+  db.ref("players/" + id).remove()
+    .then(() => toast("삭제됨"))
+    .catch(err => toast("삭제 실패: " + err.message, true));
+}
 
-  let selected=[...document.querySelectorAll("#playerSelect input:checked")].map(i=>i.value);
+/* ------------------ 선수 체크박스 (경기 입력용) ------------------ */
+function renderPlayerSelect() {
+  if (!players.length) {
+    $("playerSelect").innerHTML = '<div class="empty">먼저 선수를 등록하세요</div>';
+    return;
+  }
+  $("playerSelect").innerHTML = players
+    .sort((a,b)=>a.name.localeCompare(b.name, "ko"))
+    .map(p => `<label><input type="checkbox" value="${escapeHtml(p.name)}"> ${escapeHtml(p.name)}</label>`)
+    .join("");
+}
 
-  if(selected.length<2) return alert("2명 이상 선택");
+/* ------------------ 팀 자동 구성 ------------------ */
+$("btnAutoTeam").addEventListener("click", autoTeam);
 
-  selected.sort(()=>Math.random()-0.5);
+function autoTeam() {
+  const selected = qsa("#playerSelect input:checked").map(i => i.value);
+  if (selected.length < 2) return toast("2명 이상 선택하세요", true);
 
-  let half=Math.ceil(selected.length/2);
+  // MMR 기반 균형 배정: MMR 높은 순으로 정렬 후 번갈아 배치 → 스네이크 드래프트
+  const mmr = calcMMR(games);
+  const ranked = [...selected].sort((a,b) => (mmr[b]||1000) - (mmr[a]||1000));
+  const A = [], B = [];
+  ranked.forEach((p, idx) => (idx % 2 === 0 ? A : B).push(p));
 
-  let A=selected.slice(0,half);
-  let B=selected.slice(half);
-
-  teamBox.innerHTML = `
-    <b>A팀</b><br>${A.join(", ")}<br><br>
-    <b>B팀</b><br>${B.join(", ")}
+  lastTeam = { A, B };
+  $("teamBox").innerHTML = `
+    <div class="team-grid">
+      <div class="team A"><b>A팀</b>${A.map(escapeHtml).join("<br>")}</div>
+      <div class="team B"><b>B팀</b>${B.map(escapeHtml).join("<br>")}</div>
+    </div>
+    <div class="muted">MMR 균형 기준으로 배정되었습니다</div>
   `;
 }
 
-// 저장
-function saveGame(){
+/* ------------------ 경기 저장 ------------------ */
+$("btnSaveGame").addEventListener("click", saveGame);
 
-  let text=teamBox.innerText;
-  if(!text) return alert("팀 구성 먼저");
+function saveGame() {
+  if (!lastTeam) return toast("팀 구성을 먼저 하세요", true);
 
-  let A=text.split("A팀")[1].split("B팀")[0].trim().split(", ");
-  let B=text.split("B팀")[1].trim().split(", ");
-
+  const btn = $("btnSaveGame");
+  btn.disabled = true;
   db.ref("games").push({
-    date:date.value,
-    teams:{A,B},
-    winner:winner.value
-  });
-
-  alert("저장 완료");
+    date: $("date").value,
+    teams: lastTeam,
+    winner: $("winner").value,
+    createdAt: firebase.database.ServerValue.TIMESTAMP,
+    createdBy: auth.currentUser ? auth.currentUser.uid : null
+  })
+  .then(() => {
+    toast("경기 저장 완료");
+    lastTeam = null;
+    $("teamBox").innerHTML = "";
+    qsa("#playerSelect input:checked").forEach(i => i.checked = false);
+  })
+  .catch(err => toast("저장 실패: " + err.message, true))
+  .finally(() => { btn.disabled = false; });
 }
 
-// 통계
-function buildStats(data){
-
-  let stats={};
-
-  data.forEach(g=>{
-    let win=g.winner;
-
-    Object.keys(g.teams).forEach(t=>{
-      g.teams[t].forEach(p=>{
-        if(!stats[p]) stats[p]={win:0,lose:0};
-
-        if(t===win) stats[p].win++;
-        else stats[p].lose++;
+/* ------------------ 통계 ------------------ */
+function buildStats(data) {
+  const stats = {};
+  data.forEach(g => {
+    if (!g.teams || !g.winner) return;
+    ["A","B"].forEach(t => {
+      (g.teams[t] || []).forEach(p => {
+        if (!stats[p]) stats[p] = { win: 0, lose: 0 };
+        if (t === g.winner) stats[p].win++; else stats[p].lose++;
       });
     });
   });
-
   return stats;
 }
 
-// MMR
-function calcMMR(data){
-  let mmr={};
-
-  data.forEach(g=>{
-    let SA=g.winner==="A"?1:0;
-    let SB=1-SA;
-
-    g.teams.A.forEach(p=>{
-      if(!mmr[p]) mmr[p]=1000;
-      mmr[p]+=20*(SA-0.5);
+function calcMMR(data) {
+  const mmr = {};
+  const K = 20, BASE = 1000;
+  data.forEach(g => {
+    if (!g.teams || !g.winner) return;
+    const SA = g.winner === "A" ? 1 : 0;
+    const SB = 1 - SA;
+    (g.teams.A || []).forEach(p => {
+      if (mmr[p] === undefined) mmr[p] = BASE;
+      mmr[p] += K * (SA - 0.5);
     });
-
-    g.teams.B.forEach(p=>{
-      if(!mmr[p]) mmr[p]=1000;
-      mmr[p]+=20*(SB-0.5);
+    (g.teams.B || []).forEach(p => {
+      if (mmr[p] === undefined) mmr[p] = BASE;
+      mmr[p] += K * (SB - 0.5);
     });
   });
-
   return mmr;
 }
 
-// 선수 상세
-function showDetail(name){
+/* ------------------ 선수 상세 ------------------ */
+function showDetail(name) {
+  const stats = buildStats(games);
+  const mmr = calcMMR(games);
+  const s = stats[name] || { win: 0, lose: 0 };
+  const total = s.win + s.lose;
+  const rate = total ? (s.win / total * 100).toFixed(1) : "0.0";
 
-  db.ref("games").once("value").then(snap=>{
-
-    let data=[];
-    snap.forEach(c=>data.push(c.val()));
-
-    let stats=buildStats(data);
-    let mmr=calcMMR(data);
-
-    let s=stats[name]||{win:0,lose:0};
-    let total=s.win+s.lose;
-    let rate= total? (s.win/total*100).toFixed(1):0;
-
-    playerDetail.style.display="block";
-    playerDetail.innerHTML = `
-      <h3>${name}</h3>
-      ${s.win}승 ${s.lose}패<br>
-      승률 ${rate}%<br>
-      MMR ${mmr[name]||1000}
-    `;
-  });
+  const d = $("playerDetail");
+  d.style.display = "block";
+  d.innerHTML = `
+    <h3>${escapeHtml(name)}</h3>
+    <div>전적: <b>${s.win}승 ${s.lose}패</b> (${total}경기)</div>
+    <div>승률: <b>${rate}%</b></div>
+    <div>MMR: <b>${Math.round(mmr[name] || 1000)}</b></div>
+    <button class="secondary" onclick="document.getElementById('playerDetail').style.display='none'">닫기</button>
+  `;
 }
 
-// 랭킹
-db.ref("games").on("value",snap=>{
+/* ------------------ 랭킹 ------------------ */
+function renderRank() {
+  const mmr = calcMMR(games);
+  const stats = buildStats(games);
+  const arr = players.map(p => ({
+    name: p.name,
+    mmr: Math.round(mmr[p.name] || 1000),
+    win: (stats[p.name]||{}).win || 0,
+    lose: (stats[p.name]||{}).lose || 0
+  })).sort((a,b) => b.mmr - a.mmr);
 
-  let data=[];
-  snap.forEach(c=>data.push(c.val()));
-
-  let mmr=calcMMR(data);
-
-  let arr=Object.keys(mmr).map(p=>({p,mmr:mmr[p]}));
-  arr.sort((a,b)=>b.mmr-a.mmr);
-
-  rank.innerHTML = arr.map(x=>`
-    <div class="card">${x.p} - ${x.mmr.toFixed(0)}</div>
+  if (!arr.length) {
+    $("rankList").innerHTML = '<div class="empty">데이터 없음</div>';
+    return;
+  }
+  $("rankList").innerHTML = arr.map((x,i) => `
+    <div class="rank-row">
+      <div class="rk">${i+1}</div>
+      <div class="nm">${escapeHtml(x.name)}</div>
+      <div class="sc">${x.mmr} · ${x.win}승 ${x.lose}패</div>
+    </div>
   `).join("");
-});
+}
 
+/* ------------------ 최근 경기 ------------------ */
+function renderRecentGames() {
+  const recent = [...games].reverse().slice(0, 5);
+  if (!recent.length) {
+    $("recentGames").innerHTML = '<div class="empty">경기 기록 없음</div>';
+    return;
+  }
+  $("recentGames").innerHTML = recent.map(g => `
+    <div style="padding:8px 0; border-bottom:1px solid #eee;">
+      <div class="muted">${escapeHtml(g.date || "")} · ${g.winner}팀 승</div>
+      <div style="font-size:13px;">
+        A: ${(g.teams.A||[]).map(escapeHtml).join(", ")}<br>
+        B: ${(g.teams.B||[]).map(escapeHtml).join(", ")}
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ------------------ 유틸 ------------------ */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
 </script>
-
 </body>
 </html>
