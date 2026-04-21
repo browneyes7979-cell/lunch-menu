@@ -143,24 +143,6 @@
   .club-stat { padding: 10px 12px; background: #fffbe6; border-left: 4px solid #f39c12;
                border-radius: 6px; margin: 6px 0; font-size: 13px; }
   .club-stat .title { font-weight: 700; color: #d68910; margin-bottom: 2px; }
-
-  /* 선수 상세 - 경기 기록 */
-  .game-hist { padding: 8px; margin: 6px 0; background: #f9f9f9; border-radius: 6px;
-               border-left: 3px solid #ddd; font-size: 12px; line-height: 1.5; }
-  .game-hist.W { border-left-color: #27ae60; }
-  .game-hist.L { border-left-color: #c0392b; }
-  .game-hist-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .result-badge { padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; color: #fff; }
-  .result-badge.W { background: #27ae60; }
-  .result-badge.L { background: #c0392b; }
-  .game-hist-teams { margin-bottom: 6px; }
-  .game-hist-teams .me { background: #fff3cd; padding: 0 3px; border-radius: 2px; font-weight: 700; }
-  .game-hist-teams .won { font-weight: 600; }
-  .game-hist-teams .lost { color: #999; }
-  .game-hist-actions { display: flex; gap: 6px; }
-  .game-hist-actions button { width: auto; padding: 3px 8px; font-size: 11px; margin: 0; }
-  .game-hist-actions .edit { background: #3498db; }
-  .game-hist-actions .del { background: #c0392b; }
 </style>
 </head>
 <body>
@@ -444,7 +426,6 @@ let players = [];
 let games = [];
 let assign = {};          // {name: "A"|"B"|""}
 let editingGameId = null; // null이면 신규, 아니면 수정 중
-let currentModalPlayer = null; // 모달이 열려있는 선수 이름
 
 $("date").value = new Date().toISOString().split("T")[0];
 $("date").addEventListener("change", renderDayGames);
@@ -471,8 +452,6 @@ function bootData() {
     renderRank();
     renderClubStats();
     renderDayGames();
-    // 모달이 열려있으면 자동 새로고침
-    if (currentModalPlayer) openPlayerModal(currentModalPlayer);
   }, err => toast("경기 로딩 실패: " + err.message, true));
 }
 
@@ -905,10 +884,7 @@ $("btnCloseModal").addEventListener("click", closeModal);
 $("playerModal").addEventListener("click", e => {
   if (e.target.id === "playerModal") closeModal();
 });
-function closeModal() {
-  currentModalPlayer = null;
-  $("playerModal").classList.remove("show");
-}
+function closeModal() { $("playerModal").classList.remove("show"); }
 
 function topPairs(obj, minGames=2, limit=3, asc=false) {
   const arr = Object.keys(obj).map(n => {
@@ -953,50 +929,7 @@ function mmrChartSvg(history) {
   `;
 }
 
-function renderPlayerGames(name) {
-  const list = sortedGames(games)
-    .filter(g => (g.teams.A||[]).includes(name) || (g.teams.B||[]).includes(name))
-    .reverse(); // 최신순
-
-  if (!list.length) {
-    return '<div class="muted" style="padding:4px 8px;">경기 기록이 없습니다</div>';
-  }
-  return list.map(g => {
-    const inA = (g.teams.A||[]).includes(name);
-    const myTeam = inA ? "A" : "B";
-    const won = g.winner === myTeam;
-    const renderTeam = (list, teamKey) => {
-      const isWin = g.winner === teamKey;
-      return `<div class="${isWin?'won':'lost'}">${teamKey}: ${(list||[]).map(p =>
-        p === name ? `<span class="me">${esc(p)}</span>` : esc(p)
-      ).join(", ")}</div>`;
-    };
-    return `
-      <div class="game-hist ${won?'W':'L'}">
-        <div class="game-hist-header">
-          <span class="result-badge ${won?'W':'L'}">${won?'승':'패'}</span>
-          <span>${esc(g.date || '')} · ${myTeam}팀</span>
-        </div>
-        <div class="game-hist-teams">
-          ${renderTeam(g.teams.A, "A")}
-          ${renderTeam(g.teams.B, "B")}
-        </div>
-        <div class="game-hist-actions">
-          <button class="edit" data-id="${g.id}">수정</button>
-          <button class="del" data-id="${g.id}">삭제</button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
 function openPlayerModal(name) {
-  // 스크롤 위치 보존 (모달 재렌더 시)
-  const inner = $("playerModal").querySelector(".inner");
-  const savedScroll = inner ? inner.scrollTop : 0;
-
-  currentModalPlayer = name;
-
   const stats = buildStats(games);
   const mmr = calcMMR(games);
   const s = stats[name] || { win:0, lose:0 };
@@ -1045,31 +978,8 @@ function openPlayerModal(name) {
 
     <div class="section-title">🎯 호구 (상대로 만나면 자주 이긴)</div>
     ${pairHtml(victim, "데이터 없음")}
-
-    <div class="section-title">📋 경기 기록 (${total}경기) · 수정/삭제</div>
-    ${renderPlayerGames(name)}
   `;
-
-  // 경기 기록의 수정/삭제 버튼 연결
-  qsa("#modalBody .game-hist-actions .edit").forEach(el =>
-    el.addEventListener("click", () => {
-      closeModal();
-      startEditGame(el.dataset.id);
-    }));
-  qsa("#modalBody .game-hist-actions .del").forEach(el =>
-    el.addEventListener("click", () => {
-      if (!confirm("이 경기를 삭제할까요?\n(MMR·랭킹이 재계산됩니다)")) return;
-      db.ref("games/" + el.dataset.id).remove()
-        .then(() => toast("경기 삭제됨")) // 삭제 후 listener가 모달을 새로고침
-        .catch(err => toast("삭제 실패: " + err.message, true));
-    }));
-
   $("playerModal").classList.add("show");
-  // 스크롤 위치 복원
-  requestAnimationFrame(() => {
-    const newInner = $("playerModal").querySelector(".inner");
-    if (newInner) newInner.scrollTop = savedScroll;
-  });
 }
 
 /* ============ 랭킹 ============ */
