@@ -9,18 +9,25 @@
 body { margin:0; font-family:Arial; background:#f2f2f2; }
 .tabs { display:flex; background:#222; }
 .tabs button {
-  flex:1; padding:12px; color:white; border:none; background:#222;
+  flex:1; padding:12px; color:white; border:none;
 }
 .tabs button.active { background:#ff6600; }
+
 .page { display:none; padding:10px; }
 .page.active { display:block; }
+
 .card {
   background:white; padding:12px; margin:10px 0;
   border-radius:10px;
 }
+
 input, select, button {
   width:100%; padding:10px; margin:5px 0;
 }
+
+.player { padding:8px; border-bottom:1px solid #ddd; cursor:pointer; }
+.player:hover { background:#eee; }
+
 .flex { display:flex; gap:5px; }
 </style>
 </head>
@@ -39,42 +46,48 @@ input, select, button {
   <button onclick="tab(event,'rank')">랭킹</button>
 </div>
 
-<!-- 선수 관리 -->
+<!-- 선수관리 -->
 <div id="players" class="page active">
+
   <div class="card">
     <h3>선수 추가</h3>
-    <input id="newPlayer" placeholder="선수 이름">
+    <input id="newPlayer" placeholder="이름 입력">
     <button onclick="addPlayer()">추가</button>
   </div>
-  <div id="playerList"></div>
+
+  <div class="card">
+    <h3>선수 목록</h3>
+    <div id="playerList"></div>
+  </div>
+
+  <div id="playerDetail" class="card" style="display:none;"></div>
+
 </div>
 
 <!-- 경기 입력 -->
 <div id="game" class="page">
+
   <div class="card">
     <h3>경기 입력</h3>
 
     <input type="date" id="date">
 
-    <select id="mode" onchange="updateUI()">
-      <option value="1">1:1</option>
-      <option value="2">2:2</option>
-      <option value="3">3:3</option>
-      <option value="4">4:4</option>
-      <option value="43">4:3</option>
-    </select>
+    <h4>참가 선수 선택</h4>
+    <div id="playerSelect"></div>
 
-    <div id="teamA"></div>
-    <div id="teamB"></div>
+    <button onclick="autoTeam()">팀 자동 구성</button>
+
+    <div id="teamBox"></div>
 
     <select id="winner">
       <option value="A">A팀 승</option>
       <option value="B">B팀 승</option>
     </select>
 
-    <button onclick="autoBalance()">자동 팀 밸런스</button>
     <button onclick="saveGame()">경기 저장</button>
+
   </div>
+
 </div>
 
 <!-- 랭킹 -->
@@ -89,7 +102,6 @@ input, select, button {
 
 <script>
 
-// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDKvEB_SrvDSADbqxX0LTgejksxtLt4G6U",
   authDomain: "starcraft-dashboard.firebaseapp.com",
@@ -122,65 +134,102 @@ function tab(e,id){
   e.target.classList.add("active");
 }
 
+// 날짜 기본
+date.value = new Date().toISOString().split("T")[0];
+
 // 선수 DB
 let players=[];
 
 db.ref("players").on("value",snap=>{
   players=[];
   snap.forEach(c=>players.push(c.val()));
+
   renderPlayers();
-  updateUI();
+  renderPlayerSelect();
 });
 
+// 선수 추가
 function addPlayer(){
   let name=newPlayer.value.trim();
-  if(!name) return;
+
+  if(name==="") return alert("이름 입력");
+  if(players.includes(name)) return alert("중복 선수");
+
   db.ref("players").push(name);
   newPlayer.value="";
 }
 
+// 선수 목록
 function renderPlayers(){
   playerList.innerHTML = players.map(p=>`
-    <div class="card">${p}</div>
+    <div class="player" onclick="showDetail('${p}')">${p}</div>
   `).join("");
 }
 
-// 팀 UI
-function updateUI(){
-  let mode=modeSel();
-  let [a,b]=mode;
-
-  teamA.innerHTML="<b>A팀</b>";
-  teamB.innerHTML="<b>B팀</b>";
-
-  for(let i=0;i<a;i++) teamA.innerHTML+=selectHTML();
-  for(let i=0;i<b;i++) teamB.innerHTML+=selectHTML();
+// 선수 선택 (체크박스)
+function renderPlayerSelect(){
+  playerSelect.innerHTML = players.map(p=>`
+    <label><input type="checkbox" value="${p}"> ${p}</label><br>
+  `).join("");
 }
 
-function modeSel(){
-  let m=document.getElementById("mode").value;
-  if(m=="43") return [4,3];
-  return [parseInt(m),parseInt(m)];
-}
+// 팀 구성
+function autoTeam(){
 
-function selectHTML(){
-  let html="<select>";
-  players.forEach(p=> html+=`<option>${p}</option>`);
-  html+="</select>";
-  return html;
+  let selected=[...document.querySelectorAll("#playerSelect input:checked")].map(i=>i.value);
+
+  if(selected.length<2) return alert("2명 이상 선택");
+
+  selected.sort(()=>Math.random()-0.5);
+
+  let half=Math.ceil(selected.length/2);
+
+  let A=selected.slice(0,half);
+  let B=selected.slice(half);
+
+  teamBox.innerHTML = `
+    <b>A팀</b><br>${A.join(", ")}<br><br>
+    <b>B팀</b><br>${B.join(", ")}
+  `;
 }
 
 // 저장
 function saveGame(){
 
-  let teamA=[...document.querySelectorAll("#teamA select")].map(s=>s.value);
-  let teamB=[...document.querySelectorAll("#teamB select")].map(s=>s.value);
+  let text=teamBox.innerText;
+  if(!text) return alert("팀 구성 먼저");
+
+  let A=text.split("A팀")[1].split("B팀")[0].trim().split(", ");
+  let B=text.split("B팀")[1].trim().split(", ");
 
   db.ref("games").push({
     date:date.value,
-    teams:{A:teamA, B:teamB},
+    teams:{A,B},
     winner:winner.value
   });
+
+  alert("저장 완료");
+}
+
+// 통계
+function buildStats(data){
+
+  let stats={};
+
+  data.forEach(g=>{
+    let win=g.winner;
+
+    Object.keys(g.teams).forEach(t=>{
+      g.teams[t].forEach(p=>{
+        if(!stats[p]) stats[p]={win:0,lose:0};
+
+        if(t===win) stats[p].win++;
+        else stats[p].lose++;
+      });
+    });
+  });
+
+  return stats;
 }
 
 // MMR
@@ -188,21 +237,51 @@ function calcMMR(data){
   let mmr={};
 
   data.forEach(g=>{
-    let all=[...g.teams.A,...g.teams.B];
-    all.forEach(p=>{ if(!mmr[p]) mmr[p]=1000; });
-
     let SA=g.winner==="A"?1:0;
     let SB=1-SA;
 
-    g.teams.A.forEach(p=>mmr[p]+=20*(SA-0.5));
-    g.teams.B.forEach(p=>mmr[p]+=20*(SB-0.5));
+    g.teams.A.forEach(p=>{
+      if(!mmr[p]) mmr[p]=1000;
+      mmr[p]+=20*(SA-0.5);
+    });
+
+    g.teams.B.forEach(p=>{
+      if(!mmr[p]) mmr[p]=1000;
+      mmr[p]+=20*(SB-0.5);
+    });
   });
 
   return mmr;
 }
 
+// 선수 상세
+function showDetail(name){
+
+  db.ref("games").once("value").then(snap=>{
+
+    let data=[];
+    snap.forEach(c=>data.push(c.val()));
+
+    let stats=buildStats(data);
+    let mmr=calcMMR(data);
+
+    let s=stats[name]||{win:0,lose:0};
+    let total=s.win+s.lose;
+    let rate= total? (s.win/total*100).toFixed(1):0;
+
+    playerDetail.style.display="block";
+    playerDetail.innerHTML = `
+      <h3>${name}</h3>
+      ${s.win}승 ${s.lose}패<br>
+      승률 ${rate}%<br>
+      MMR ${mmr[name]||1000}
+    `;
+  });
+}
+
 // 랭킹
 db.ref("games").on("value",snap=>{
+
   let data=[];
   snap.forEach(c=>data.push(c.val()));
 
@@ -215,26 +294,6 @@ db.ref("games").on("value",snap=>{
     <div class="card">${x.p} - ${x.mmr.toFixed(0)}</div>
   `).join("");
 });
-
-// 자동 밸런스
-function autoBalance(){
-
-  let all=[
-    ...document.querySelectorAll("#teamA select"),
-    ...document.querySelectorAll("#teamB select")
-  ].map(s=>s.value);
-
-  all=[...new Set(all)];
-  all.sort(()=>Math.random()-0.5);
-
-  let half=Math.ceil(all.length/2);
-
-  let A=all.slice(0,half);
-  let B=all.slice(half);
-
-  document.querySelectorAll("#teamA select").forEach((s,i)=>s.value=A[i]||A[0]);
-  document.querySelectorAll("#teamB select").forEach((s,i)=>s.value=B[i]||B[0]);
-}
 
 </script>
 
