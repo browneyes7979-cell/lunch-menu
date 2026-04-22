@@ -160,6 +160,24 @@
   .hist-btns .d { background: #c0392b; }
 
   .version { font-size: 10px; color: #aaa; text-align: center; padding: 6px; }
+
+  /* 종족 */
+  .race-ico { vertical-align: middle; flex-shrink: 0; }
+  .chip .race-ico { margin-right: 4px; }
+  .race-btn { width: auto; padding: 4px 6px; margin: 0; background: transparent;
+              border: 1px solid #ddd; border-radius: 6px; display: inline-flex;
+              align-items: center; gap: 4px; font-size: 11px; color: #555; cursor: pointer;
+              font-weight: 600; }
+  .race-btn:active { transform: scale(0.94); }
+  .player .race-btn { margin-right: 6px; min-width: 54px; justify-content: center; }
+  .race-legend { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+                 padding: 8px; background: #f9f9f9; border-radius: 6px; margin-bottom: 8px;
+                 font-size: 11px; color: #666; }
+  .race-legend span { display: inline-flex; align-items: center; gap: 3px; }
+  .race-matchup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
+  .race-matchup .cell { padding: 8px; background: #f7f7f7; border-radius: 6px; text-align: center; font-size: 12px; }
+  .race-matchup .cell .hd { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px; color: #666; }
+  .race-matchup .cell .val { font-weight: 700; font-size: 14px; color: #222; }
 </style>
 </head>
 <body>
@@ -203,7 +221,8 @@
     </div>
     <div class="card">
       <h3>선수 목록 <span class="muted" id="playerCount"></span></h3>
-      <p class="muted" style="margin:0 0 8px 0;">이름을 누르면 상세 통계가 나옵니다</p>
+      <p class="muted" style="margin:0 0 8px 0;">이름을 누르면 상세 통계, 종족 버튼 누르면 종족 순환</p>
+      <div id="raceLegend" class="race-legend"></div>
       <div id="playerList"></div>
     </div>
     <div class="card">
@@ -265,7 +284,7 @@
     </div>
   </div>
 
-  <div class="version">v2026-04-21-D (rebuild) — 이 줄이 안 보이면 구버전입니다</div>
+  <div class="version">v2026-04-21-F (종족 변경 PERMISSION_DENIED 수정) — 이 줄이 안 보이면 구버전입니다</div>
 </div>
 
 <div id="playerModal">
@@ -298,6 +317,36 @@ const $ = id => document.getElementById(id);
 const qsa = sel => [...document.querySelectorAll(sel)];
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+/* 종족 아이콘 (인라인 SVG) */
+const RACE_LABEL = { T: "테란", Z: "저그", P: "프로토스", R: "랜덤" };
+function raceIcon(race, size=18) {
+  const r = race || "R";
+  const s = size;
+  if (r === "T") {
+    return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
+      <path d="M16 2 L28 6 L28 16 Q28 26 16 30 Q4 26 4 16 L4 6 Z" fill="#2563eb"/>
+      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">T</text>
+    </svg>`;
+  }
+  if (r === "Z") {
+    return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
+      <circle cx="16" cy="16" r="13" fill="#9333ea"/>
+      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">Z</text>
+    </svg>`;
+  }
+  if (r === "P") {
+    return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
+      <polygon points="16,2 28,16 16,30 4,16" fill="#f59e0b"/>
+      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">P</text>
+    </svg>`;
+  }
+  return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
+    <circle cx="16" cy="16" r="13" fill="#6b7280"/>
+    <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">?</text>
+  </svg>`;
+}
+const RACE_CYCLE = { R: "T", T: "Z", Z: "P", P: "R" };
 
 function toast(msg, err=false) {
   const t = $("toast");
@@ -446,8 +495,10 @@ function bootData() {
     snap.forEach(c => {
       const v = c.val();
       const name = (typeof v === "string") ? v : (v && v.name) ? v.name : null;
-      if (name) players.push({ id: c.key, name });
+      const race = (v && v.race) || "R";
+      if (name) players.push({ id: c.key, name, race });
     });
+    renderRaceLegend();
     renderPlayers();
     renderHelperSelect();
     renderAssignChips();
@@ -480,12 +531,22 @@ function addPlayer() {
   btn.disabled = true;
   db.ref("players").push({
     name,
+    race: "R",
     createdAt: firebase.database.ServerValue.TIMESTAMP,
     createdBy: auth.currentUser ? auth.currentUser.uid : null
   })
   .then(() => { input.value = ""; toast(`"${name}" 추가됨`); })
   .catch(err => { toast("추가 실패: " + err.message, true); console.error(err); })
   .finally(() => { btn.disabled = false; });
+}
+
+function renderRaceLegend() {
+  $("raceLegend").innerHTML = `
+    <span>${raceIcon("T",14)} 테란</span>
+    <span>${raceIcon("Z",14)} 저그</span>
+    <span>${raceIcon("P",14)} 프로토스</span>
+    <span>${raceIcon("R",14)} 랜덤/미설정</span>
+  `;
 }
 
 function renderPlayers() {
@@ -498,13 +559,30 @@ function renderPlayers() {
   $("playerList").innerHTML = sorted.map(p => `
     <div class="player">
       <div class="name" data-name="${esc(p.name)}">${esc(p.name)}</div>
+      <button class="race-btn" data-id="${p.id}" title="탭하여 종족 변경">${raceIcon(p.race,14)} ${p.race}</button>
       <button class="del" data-id="${p.id}" data-name="${esc(p.name)}">삭제</button>
     </div>
   `).join("");
   qsa("#playerList .name").forEach(el =>
     el.addEventListener("click", () => openPlayerModal(el.dataset.name)));
+  qsa("#playerList .race-btn").forEach(el =>
+    el.addEventListener("click", () => cyclePlayerRace(el.dataset.id)));
   qsa("#playerList .del").forEach(el =>
     el.addEventListener("click", () => deletePlayer(el.dataset.id, el.dataset.name)));
+}
+
+function cyclePlayerRace(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  const next = RACE_CYCLE[p.race || "R"];
+  // 레거시 문자열 데이터(name만 있는 경우)도 안전하게 처리하기 위해
+  // name + race를 함께 써서 객체로 만들어 줍니다.
+  db.ref("players/" + id).update({
+    name: p.name,
+    race: next
+  })
+    .then(() => toast(`${p.name} → ${RACE_LABEL[next]}`))
+    .catch(err => toast("종족 변경 실패: " + err.message, true));
 }
 
 function deletePlayer(id, name) {
@@ -580,8 +658,11 @@ function renderAssignChips() {
     else none.push(p.name);
   });
 
-  const chipHtml = (name, team) =>
-    `<button class="chip ${team}" data-name="${esc(name)}">${esc(name)}</button>`;
+  const chipHtml = (name, team) => {
+    const p = players.find(x => x.name === name);
+    const race = (p && p.race) || "R";
+    return `<button class="chip ${team}" data-name="${esc(name)}">${raceIcon(race,16)}${esc(name)}</button>`;
+  };
 
   $("assignList").innerHTML = `
     <div class="chip-section none">
@@ -707,12 +788,20 @@ function saveGame(winner) {
   if (!A.length || !B.length) return toast("A/B 양 팀에 선수를 배정하세요", true);
   if (!$("date").value) return toast("날짜를 선택하세요", true);
 
+  // 경기 시점의 종족 스냅샷 저장
+  const races = {};
+  [...A, ...B].forEach(n => {
+    const p = players.find(x => x.name === n);
+    races[n] = (p && p.race) || "R";
+  });
+
   const btnA = $("btnWinA"), btnB = $("btnWinB");
   btnA.disabled = btnB.disabled = true;
 
   const data = {
     date: $("date").value,
     teams: { A, B },
+    races,
     winner,
     updatedAt: firebase.database.ServerValue.TIMESTAMP,
     updatedBy: auth.currentUser ? auth.currentUser.uid : null
@@ -755,12 +844,16 @@ function renderDayGames() {
     const aCls = g.winner === "A" ? "team-line winner" : "team-line loser";
     const bCls = g.winner === "B" ? "team-line winner" : "team-line loser";
     const editing = g.id === editingGameId ? ' style="background:#fff3cd;"' : "";
+    const nameWithRace = (n) => {
+      const r = (g.races && g.races[n]) || (players.find(p=>p.name===n)?.race) || "R";
+      return `${raceIcon(r,14)}${esc(n)}`;
+    };
     return `
       <div class="game-row"${editing}>
         <div class="num">${i+1}.</div>
         <div class="teams">
-          <div class="${aCls}">A: ${(g.teams.A||[]).map(esc).join(", ")}</div>
-          <div class="${bCls}">B: ${(g.teams.B||[]).map(esc).join(", ")}</div>
+          <div class="${aCls}">A: ${(g.teams.A||[]).map(nameWithRace).join(", ")}</div>
+          <div class="${bCls}">B: ${(g.teams.B||[]).map(nameWithRace).join(", ")}</div>
         </div>
         <div class="game-actions">
           <button class="edit-game" data-id="${g.id}">수정</button>
@@ -953,17 +1046,19 @@ function renderPlayerGamesList(name) {
     const inA = (g.teams.A||[]).includes(name);
     const myTeam = inA ? "A" : "B";
     const won = g.winner === myTeam;
+    const getRace = n => (g.races && g.races[n]) || (players.find(p=>p.name===n)?.race) || "R";
     const renderTeam = (plist, teamKey) => {
       const isWin = g.winner === teamKey;
-      return `<div class="${isWin?"won":""}">${teamKey}: ${(plist||[]).map(p =>
-        p === name ? `<span class="me">${esc(p)}</span>` : esc(p)
-      ).join(", ")}</div>`;
+      return `<div class="${isWin?"won":""}">${teamKey}: ${(plist||[]).map(p => {
+        const icon = raceIcon(getRace(p), 12);
+        return p === name ? `<span class="me">${icon}${esc(p)}</span>` : `${icon}${esc(p)}`;
+      }).join(", ")}</div>`;
     };
     return `
       <div class="hist-item ${won?'W':'L'}">
         <div class="hist-top">
           <span class="hist-badge ${won?'W':'L'}">${won?'승':'패'}</span>
-          <span><b>${esc(g.date || '')}</b> · ${myTeam}팀 소속</span>
+          <span><b>${esc(g.date || '')}</b> · ${myTeam}팀 소속 · ${raceIcon(getRace(name),14)} ${RACE_LABEL[getRace(name)]}</span>
         </div>
         <div class="hist-teams">
           ${renderTeam(g.teams.A, "A")}
@@ -1003,13 +1098,46 @@ function openPlayerModal(name) {
   const nemesis = topPairs(opps, 2, 3, true);
   const victim = topPairs(opps, 2, 3, false);
 
+  // 상대 종족별 승률 계산
+  const vsRace = { T:{w:0,l:0}, Z:{w:0,l:0}, P:{w:0,l:0} };
+  games.forEach(g => {
+    const inA = (g.teams.A||[]).includes(name);
+    const inB = (g.teams.B||[]).includes(name);
+    if (!inA && !inB) return;
+    const myTeam = inA ? "A" : "B";
+    const otherTeam = inA ? "B" : "A";
+    const won = g.winner === myTeam;
+    (g.teams[otherTeam]||[]).forEach(opp => {
+      const r = (g.races && g.races[opp]) || (players.find(p=>p.name===opp)?.race) || "R";
+      if (r === "R") return;
+      if (won) vsRace[r].w++; else vsRace[r].l++;
+    });
+  });
+  const mainPlayer = players.find(p => p.name === name);
+  const myRace = (mainPlayer && mainPlayer.race) || "R";
+
+  const matchupHtml = Object.keys(vsRace).map(r => {
+    const v = vsRace[r];
+    const t = v.w + v.l;
+    const rate = t ? (v.w/t*100).toFixed(0) : "-";
+    return `<div class="cell">
+      <div class="hd">vs ${raceIcon(r,14)} ${RACE_LABEL[r]}</div>
+      <div class="val">${v.w}승 ${v.l}패</div>
+      <div class="muted">${t ? rate+"%" : "데이터 없음"}</div>
+    </div>`;
+  }).join("");
+
   $("modalBody").innerHTML = `
-    <h2>${esc(name)}</h2>
+    <h2>${esc(name)} ${raceIcon(myRace, 20)}</h2>
+    <div class="stat-row"><span>주 종족</span><b>${RACE_LABEL[myRace]}</b></div>
     <div class="stat-row"><span>전적</span><b>${s.win}승 ${s.lose}패 (${total}경기)</b></div>
     <div class="stat-row"><span>승률</span><b>${rate}%</b></div>
     <div class="stat-row"><span>MMR</span><b>${Math.round(mmr[name]||1000)}</b></div>
     <div class="stat-row"><span>현재 기록</span><b>${curStreakText}</b></div>
     <div class="stat-row"><span>최장 연승 / 연패</span><b>${streak.longestW} / ${streak.longestL}</b></div>
+
+    <div class="section-title">🆚 종족 상성 (상대 기준)</div>
+    <div class="race-matchup">${matchupHtml}</div>
 
     <div class="section-title">📊 최근 10경기</div>
     <div class="form-dots">
