@@ -2,1316 +2,364 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>스타 대시보드</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>환경법령 개정 대응 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-         background: #f2f2f2; color: #222; padding-bottom: 40px; }
-  header { background: #222; color: #fff; padding: 10px 14px; display: flex;
-           justify-content: space-between; align-items: center; }
-  header .who { font-size: 13px; opacity: .85; }
-  .tabs { display: flex; background: #222; position: sticky; top: 0; z-index: 10; }
-  .tabs button { flex: 1; padding: 12px 6px; color: #fff; border: none;
-                 background: transparent; font-size: 14px; cursor: pointer; }
-  .tabs button.active { background: #ff6600; font-weight: 600; }
-  .page { display: none; padding: 10px; }
-  .page.active { display: block; }
-  .card { background: #fff; padding: 14px; margin: 10px 0; border-radius: 10px;
-          box-shadow: 0 1px 2px rgba(0,0,0,.05); }
-  .card h3 { margin: 0 0 10px 0; font-size: 16px; }
-  .card h4 { margin: 12px 0 6px 0; font-size: 14px; }
-  input, select, button { width: 100%; padding: 10px; margin: 4px 0;
-                          border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
-                          font-family: inherit; background: #fff; }
-  button { background: #ff6600; color: #fff; border: none; cursor: pointer; font-weight: 600; }
-  button.secondary { background: #666; }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  .flex { display: flex; gap: 6px; }
-  .flex > * { flex: 1; }
-  .player { padding: 10px; border-bottom: 1px solid #eee;
-            display: flex; justify-content: space-between; align-items: center; }
-  .player:last-child { border-bottom: none; }
-  .player .name { flex: 1; cursor: pointer; }
-  .player .del { width: auto; padding: 4px 10px; background: #c0392b;
-                 font-size: 12px; margin: 0; }
-  .checklist label { display: flex; align-items: center; gap: 8px; padding: 6px 0;
-                     border-bottom: 1px solid #f2f2f2; cursor: pointer; font-size: 14px; }
-  .checklist input { width: auto; margin: 0; }
-  .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-  .team-col { padding: 10px; border-radius: 8px; min-height: 60px; }
-  .team-col.A { background: #e3f2fd; border-left: 4px solid #2980b9; }
-  .team-col.B { background: #fbe9e7; border-left: 4px solid #c0392b; }
-  .team-col h4 { margin: 0 0 6px 0; font-size: 13px; }
-  .team-col .tp { background: #fff; padding: 6px 10px; margin: 3px 0; border-radius: 4px;
-                  font-size: 13px; }
-
-  .chip-section { padding: 10px; border-radius: 8px; margin: 6px 0; min-height: 50px; }
-  .chip-section.none { background: #f7f7f7; border: 1px dashed #ccc; }
-  .chip-section.A { background: #e3f2fd; border-left: 4px solid #2980b9; }
-  .chip-section.B { background: #fbe9e7; border-left: 4px solid #c0392b; }
-  .chip-section h5 { margin: 0 0 8px 0; font-size: 12px; color: #666; font-weight: 600; }
-  .chip-section .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip-section .chips.empty { color: #aaa; font-size: 12px; padding: 2px; }
-  .chip { padding: 8px 14px; border-radius: 20px; border: 1px solid #ddd;
-          background: #fff; font-size: 13px; cursor: pointer; width: auto; margin: 0;
-          color: #333; font-weight: 500; touch-action: manipulation; user-select: none; }
-  .chip:active { transform: scale(0.94); }
-  .chip.A { background: #2980b9; color: #fff; border-color: #2980b9; }
-  .chip.B { background: #c0392b; color: #fff; border-color: #c0392b; }
-
-  .tools-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-  .tool-btn { width: auto; padding: 8px 12px; font-size: 12px; margin: 0; flex: 1; min-width: 0; }
-  .edit-banner { background: #fff3cd; border-left: 4px solid #f39c12;
-                 padding: 10px; border-radius: 6px; margin-bottom: 10px;
-                 display: flex; justify-content: space-between; align-items: center;
-                 font-size: 13px; gap: 8px; }
-  .edit-banner b { color: #d35400; }
-  .edit-banner button { width: auto; padding: 4px 12px; font-size: 12px; margin: 0; background: #666; flex-shrink: 0; }
-
-  .summary-box { margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 6px;
-                 font-size: 13px; line-height: 1.6; }
-  .summary-box .a { color: #2980b9; font-weight: 600; }
-  .summary-box .b { color: #c0392b; font-weight: 600; }
-  .win-btn { padding: 14px; font-size: 15px; font-weight: 700; }
-  .win-btn.A { background: #2980b9; }
-  .win-btn.B { background: #c0392b; }
-
-  .rank-row { display: flex; justify-content: space-between; align-items: center;
-              padding: 10px 14px; background: #fff; margin: 6px 0;
-              border-radius: 8px; border-left: 4px solid #ff6600; cursor: pointer; }
-  .rank-row:active { background: #fff3e6; }
-  .rank-row .rk { width: 28px; font-weight: 700; color: #ff6600; }
-  .rank-row .nm { flex: 1; font-weight: 600; }
-  .rank-row .sc { color: #666; font-size: 13px; text-align: right; }
-  .rank-row.top1 { border-left-color: gold; }
-  .rank-row.top2 { border-left-color: silver; }
-  .rank-row.top3 { border-left-color: #cd7f32; }
-
-  .game-row { padding: 10px 0; border-bottom: 1px solid #eee; display: flex;
-              align-items: flex-start; gap: 8px; }
-  .game-row:last-child { border-bottom: none; }
-  .game-row .num { width: 24px; color: #ff6600; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-  .game-row .teams { flex: 1; font-size: 13px; line-height: 1.6; min-width: 0; }
-  .team-line.winner { font-weight: 700; color: #222; }
-  .team-line.winner::before { content: "👑 "; }
-  .team-line.loser { color: #999; }
-  .game-actions { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
-  .edit-game { padding: 4px 8px; width: auto; background: #3498db; font-size: 11px; margin: 0; }
-  .del-game { padding: 4px 8px; width: auto; background: #c0392b; font-size: 11px; margin: 0; }
-
-  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-           background: #222; color: #fff; padding: 10px 16px; border-radius: 6px;
-           font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none;
-           z-index: 1000; max-width: 90%; }
-  #toast.show { opacity: 1; }
-  #toast.err { background: #c0392b; }
-  .empty { color: #999; font-size: 13px; text-align: center; padding: 20px; }
-  .muted { color: #888; font-size: 12px; }
-  #loginBox { max-width: 380px; margin: 40px auto; text-align: center; }
-  .divider { margin: 12px 0 6px 0; text-align: center; color: #888; font-size: 12px; }
-  .warn-box { background: #fff3cd; border-left: 4px solid #f39c12;
-              padding: 12px; border-radius: 6px; margin-bottom: 12px;
-              font-size: 13px; color: #664d03; text-align: left; line-height: 1.5; }
-  .warn-box b { color: #d35400; }
-  .warn-box button { margin-top: 8px; background: #f39c12; }
-
-  #playerModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55);
-                 z-index: 100; overflow-y: auto; }
-  #playerModal.show { display: block; }
-  #playerModal .inner { background: #fff; width: 92%; max-width: 520px;
-                        margin: 30px auto; border-radius: 12px; padding: 16px;
-                        max-height: 90vh; overflow-y: auto; }
-  #playerModal h2 { margin: 0 0 8px 0; font-size: 20px; }
-  .stat-row { display: flex; justify-content: space-between; padding: 6px 0;
-              border-bottom: 1px solid #f2f2f2; font-size: 14px; }
-  .stat-row:last-child { border-bottom: none; }
-  .section-title { margin: 16px 0 6px 0; font-size: 14px; font-weight: 700;
-                   color: #444; border-bottom: 2px solid #ff6600; padding-bottom: 4px; }
-  .form-dots { display: flex; gap: 4px; margin: 6px 0; flex-wrap: wrap; }
-  .form-dot { width: 22px; height: 22px; border-radius: 50%; display: flex;
-              align-items: center; justify-content: center; color: #fff; font-size: 11px;
-              font-weight: 700; }
-  .form-dot.W { background: #27ae60; }
-  .form-dot.L { background: #c0392b; }
-  .pair-row { display: flex; justify-content: space-between; align-items: center;
-              padding: 6px 8px; border-radius: 4px; margin: 3px 0; background: #f9f9f9;
-              font-size: 13px; }
-  .pair-row .pname { flex: 1; font-weight: 500; }
-  .pair-row .pstat { color: #666; font-size: 12px; }
-  .club-stat { padding: 10px 12px; background: #fffbe6; border-left: 4px solid #f39c12;
-               border-radius: 6px; margin: 6px 0; font-size: 13px; }
-  .club-stat .title { font-weight: 700; color: #d68910; margin-bottom: 2px; }
-
-  .hist-item { padding: 10px; margin: 8px 0; background: #fafafa; border-radius: 6px;
-               border-left: 4px solid #ddd; }
-  .hist-item.W { border-left-color: #27ae60; }
-  .hist-item.L { border-left-color: #c0392b; }
-  .hist-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
-  .hist-badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; color: #fff; }
-  .hist-badge.W { background: #27ae60; }
-  .hist-badge.L { background: #c0392b; }
-  .hist-teams { font-size: 12px; line-height: 1.6; margin-bottom: 8px; color: #555; }
-  .hist-teams .me { background: #fff3cd; padding: 0 4px; border-radius: 3px; font-weight: 700; color: #222; }
-  .hist-teams .won { color: #27ae60; font-weight: 600; }
-  .hist-btns { display: flex; gap: 6px; }
-  .hist-btns button { padding: 5px 12px; font-size: 12px; width: auto; margin: 0; }
-  .hist-btns .e { background: #3498db; }
-  .hist-btns .d { background: #c0392b; }
-
-  .version { font-size: 10px; color: #aaa; text-align: center; padding: 6px; }
-
-  /* 종족 */
-  .race-ico { vertical-align: middle; flex-shrink: 0; }
-  .chip .race-ico { margin-right: 4px; }
-  .race-btn { width: auto; padding: 4px 6px; margin: 0; background: transparent;
-              border: 1px solid #ddd; border-radius: 6px; display: inline-flex;
-              align-items: center; gap: 4px; font-size: 11px; color: #555; cursor: pointer;
-              font-weight: 600; }
-  .race-btn:active { transform: scale(0.94); }
-  .player .race-btn { margin-right: 6px; min-width: 54px; justify-content: center; }
-  .race-legend { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
-                 padding: 8px; background: #f9f9f9; border-radius: 6px; margin-bottom: 8px;
-                 font-size: 11px; color: #666; }
-  .race-legend span { display: inline-flex; align-items: center; gap: 3px; }
-  .race-matchup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
-  .race-matchup .cell { padding: 8px; background: #f7f7f7; border-radius: 6px; text-align: center; font-size: 12px; }
-  .race-matchup .cell .hd { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 4px; color: #666; }
-  .race-matchup .cell .val { font-weight: 700; font-size: 14px; color: #222; }
+:root{--p:#2563eb;--bg:#f0f4f8;--card:#fff;--bd:#dde3ea;--tx:#0f172a;--mu:#64748b;--red:#dc2626;--grn:#16a34a;--ora:#d97706}
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;overflow-x:hidden}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx)}
+.topbar{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px}
+.topbar .logo{font-size:17px;font-weight:900}.topbar .sub{font-size:11px;color:#94a3b8;margin-left:auto}
+.container{max-width:1400px;width:100%;margin:0 auto}
+.tabs{display:flex;background:#1e293b}.tab{flex:1;padding:13px 8px;border:none;background:transparent;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:900;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}.tab.active{color:#fff;border-bottom-color:#2563eb}
+.wrap{padding:16px 16px 80px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.06);border:1px solid var(--bd)}
+.lbl{font-size:10px;font-weight:900;letter-spacing:2px;color:var(--p);margin-bottom:10px;display:flex;align-items:center;gap:6px}.lbl::before{content:'';width:3px;height:14px;background:var(--p);border-radius:2px}
+.btn-sm{padding:8px 14px;border:none;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+.btn-p{background:var(--p);color:#fff}.btn-g{background:var(--grn);color:#fff}.btn-o{background:#f1f5f9;color:var(--tx);border:1px solid var(--bd)}
+.kw-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.kw-tag{display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:var(--p);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.kw-del{cursor:pointer;opacity:.5;font-size:14px}.kw-del:hover{opacity:1}
+.sf{display:flex;flex-direction:column;gap:6px}.sf input,.sf select{padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none;width:100%}
+.msg{padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;display:none;margin-top:6px}.msg.ok{background:#f0fdf4;color:var(--grn);display:block}
+.update-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}.update-bar span{font-size:12px;color:var(--mu);font-weight:700}
+.tbl-wrap{overflow-x:auto;max-height:70vh;overflow-y:auto;border:1px solid var(--bd);border-radius:10px}
+.law-tbl{width:100%;border-collapse:collapse;font-size:11px;min-width:900px}.law-tbl th{position:sticky;top:0;z-index:2;background:#1e293b;color:#fff;padding:8px 6px;font-weight:700;white-space:nowrap;font-size:10px}.law-tbl td{padding:6px;border-bottom:1px solid var(--bd);vertical-align:top}
+.law-nm{color:var(--p);font-weight:700;cursor:pointer;text-decoration:underline;font-size:12px}.law-nm:hover{color:#1d4ed8}
+.law-summary{font-size:10px;color:var(--mu);line-height:1.5;max-width:250px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:900;color:#fff}.b-law{background:#dc2626}.b-decree{background:#2563eb}.b-rule{background:#7c3aed}.b-gosi{background:#0891b2}.b-gongo{background:#059669}.b-yegyu{background:#d97706}
+.add-rev-btn{display:none}
+.modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:999;overflow-y:auto;padding:20px}
+.modal-box{background:var(--card);border-radius:16px;max-width:800px;margin:20px auto;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+.modal-head{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+.modal-head h3{font-size:15px;font-weight:900;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px}
+.modal-close{border:none;background:rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+.modal-body{padding:18px}
+.rpt-sec{margin-bottom:14px}.rpt-title{font-size:13px;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rpt-box{background:#f8fafc;border:1px solid var(--bd);border-radius:8px;padding:12px;font-size:13px;line-height:1.8}
+.rpt-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;table-layout:fixed}.rpt-tbl th{background:#f1f5f9;padding:6px 8px;font-weight:700;border:1px solid var(--bd);text-align:center}.rpt-tbl td{padding:6px 8px;border:1px solid var(--bd);vertical-align:top;line-height:1.6;overflow-wrap:break-word;overflow:hidden}
+.petro-row{background:#fef3c7!important}.petro-badge{display:inline-block;background:var(--ora);color:#fff;font-size:9px;padding:1px 6px;border-radius:8px;font-weight:900;margin-left:4px}
+.deep-btn{padding:3px 8px;border:1px solid var(--p);border-radius:4px;background:#eff6ff;color:var(--p);font-size:10px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap}.deep-btn:hover{background:var(--p);color:#fff}
+.deep-sec{margin-bottom:12px;padding:12px;background:#f8fafc;border-left:3px solid var(--p);border-radius:6px}.deep-sec h4{font-size:13px;font-weight:900;color:var(--p);margin-bottom:6px}.deep-sec ul{list-style:none;padding:0}.deep-sec li{padding:4px 0;font-size:12px;line-height:1.7;border-bottom:1px dashed #e2e8f0}.deep-sec li:last-child{border-bottom:none}
+.fb-area{margin-top:16px;padding-top:14px;border-top:2px solid var(--bd)}.fb-area textarea{width:100%;height:60px;border:1px solid var(--bd);border-radius:8px;padding:10px;font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none;resize:vertical}
+.spin{width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}@keyframes sp{to{transform:rotate(360deg)}}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}.filter-row>div{display:flex;flex-direction:column;gap:2px;min-width:100px}.filter-row label{font-size:10px;font-weight:700;color:var(--mu)}.filter-row input,.filter-row select{padding:6px 8px;border:1px solid var(--bd);border-radius:6px;font-size:11px;font-family:'Noto Sans KR',sans-serif;outline:none}
+.paging{display:flex;justify-content:center;align-items:center;gap:4px;margin-top:12px;flex-wrap:wrap}.pg-btn{padding:6px 12px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;font-family:'Noto Sans KR',sans-serif;min-width:36px}.pg-btn.active{background:var(--p);color:#fff;border-color:var(--p)}.pg-arrow{padding:6px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:700}.pg-arrow:disabled{opacity:.3;cursor:not-allowed}
+.due-soon{background:#fef2f2!important}.due-badge{display:inline-block;background:#dc2626;color:#fff;font-size:9px;padding:1px 6px;border-radius:8px;font-weight:900;margin-left:4px}
+@media(max-width:1024px){.container{max-width:100%}.wrap{padding:12px 12px 60px}}
+@media(max-width:768px){.topbar{padding:12px 14px}.topbar .logo{font-size:14px}.tab{font-size:11px;padding:10px 4px}.card{padding:12px;border-radius:10px}.law-tbl{font-size:10px}.law-tbl th,.law-tbl td{padding:5px 3px}.filter-row{flex-direction:column}.filter-row>div{width:100%}.modal{padding:10px}.modal-box{margin:10px auto}.modal-body{padding:12px}}
+@media print{.topbar,.tabs,.card:first-child,.card:nth-child(2),.modal,.btn-sm,.filter-row,.paging,.fb-area{display:none!important}.wrap{padding:0}.tbl-wrap{max-height:none;overflow:visible;border:none}}
 </style>
 </head>
 <body>
-
-<div id="loginBox" class="card">
-  <h3>스타 대시보드</h3>
-  <div id="normalLogin">
-    <p class="muted">Google 계정으로 로그인 후 이용할 수 있습니다.</p>
-    <button id="btnLogin">Google 로그인</button>
-    <div class="divider">— 또는 —</div>
-    <button id="btnGuest" class="secondary">👤 게스트로 시작</button>
-    <p class="muted" style="font-size:11px; margin-top:6px;">구글 로그인이 차단되면 이걸 사용하세요</p>
-  </div>
-  <div id="inappLogin" style="display:none;">
-    <div id="inappWarn" class="warn-box"></div>
-    <button id="btnGuestInApp" style="background:#27ae60; font-size:15px; padding:14px;">👤 게스트로 바로 시작</button>
-    <p class="muted" style="font-size:11px; margin-top:8px;">구글 로그인 없이 즉시 이용할 수 있습니다</p>
-  </div>
+<div class="topbar"><div class="logo">📋 환경법령 개정 대응 대시보드</div><div class="sub">여수 석유화학공장 환경안전팀</div></div>
+<div class="container">
+<div class="tabs">
+  <button class="tab" id="tab2" onclick="switchTab(2)">📢 입법 예고</button>
+  <button class="tab active" id="tab1" onclick="switchTab(1)">📋 최근 시행 법령</button>
+  <button class="tab" id="tab3" onclick="switchTab(3)">👤 담당자 관리</button>
 </div>
-
-<div id="app" style="display:none;">
-  <header>
-    <div><b>스타 대시보드</b></div>
-    <div class="who">
-      <span id="userName"></span>
-      <button id="btnLogout" class="secondary" style="width:auto; padding:4px 10px; font-size:12px; margin-left:8px;">로그아웃</button>
-    </div>
-  </header>
-
-  <div class="tabs">
-    <button data-tab="players" class="active">선수관리</button>
-    <button data-tab="game">경기입력</button>
-    <button data-tab="rank">랭킹</button>
-  </div>
-
-  <div id="players" class="page active">
-    <div class="card">
-      <h3>선수 추가</h3>
-      <input id="newPlayer" placeholder="이름 입력" maxlength="20">
-      <button id="btnAddPlayer">추가</button>
-    </div>
-    <div class="card">
-      <h3>선수 목록 <span class="muted" id="playerCount"></span></h3>
-      <p class="muted" style="margin:0 0 8px 0;">이름을 누르면 상세 통계, 종족 버튼 누르면 종족 순환</p>
-      <div id="raceLegend" class="race-legend"></div>
-      <div id="playerList"></div>
-    </div>
-    <div class="card">
-      <h3>🎯 팀 구성 도우미</h3>
-      <p class="muted" style="margin:0 0 8px 0;">참가할 선수를 골라 팀을 추천받으세요 (저장 안 됨)</p>
-      <div id="helperSelect" class="checklist"></div>
-      <div class="flex" style="margin-top:8px;">
-        <button id="btnHelperBalance" class="secondary">⚖️ MMR 균형</button>
-        <button id="btnHelperRandom" class="secondary">🎲 랜덤</button>
-      </div>
-      <div id="helperResult"></div>
-    </div>
-  </div>
-
-  <div id="game" class="page">
-    <div class="card">
-      <h3>경기 입력</h3>
-      <div id="editBanner" class="edit-banner" style="display:none;">
-        <div>✏️ <b>경기 수정 중</b> <span class="muted" id="editHint"></span></div>
-        <button id="btnCancelEdit">취소</button>
-      </div>
-      <label class="muted">경기 날짜</label>
-      <input type="date" id="date">
-
-      <h4>팀 배정 <span class="muted" id="assignHint"></span></h4>
-      <p class="muted" style="margin:0 0 6px 0; font-size:12px;">이름을 누르면 미참여 → A팀 → B팀 → 미참여 순환</p>
-      <div id="assignList"></div>
-
-      <div class="tools-row">
-        <button id="btnSwapTeams" class="secondary tool-btn">🔄 A↔B 교체</button>
-        <button id="btnCopyLast" class="secondary tool-btn">↩️ 직전 경기 복사</button>
-        <button id="btnClearAssign" class="secondary tool-btn">🗑️ 초기화</button>
-      </div>
-
-      <div id="summaryBox" class="summary-box" style="display:none;"></div>
-
-      <div class="muted" style="text-align:center; margin-top:8px;">승리한 팀을 누르면 저장됩니다</div>
-      <div class="flex">
-        <button id="btnWinA" class="win-btn A">A팀 승</button>
-        <button id="btnWinB" class="win-btn B">B팀 승</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 id="dayHeader">이 날 경기</h3>
-      <div id="dayGames"></div>
-    </div>
-  </div>
-
-  <div id="rank" class="page">
-    <div class="card">
-      <h3>🏆 동호회 통계</h3>
-      <div id="clubStats"></div>
-    </div>
-    <div class="card">
-      <h3>랭킹 (MMR 기준)</h3>
-      <p class="muted" style="margin:0 0 8px 0;">이름을 누르면 상세 통계 + 경기 기록 수정/삭제</p>
-      <div id="rankList"></div>
-    </div>
-  </div>
-
-  <div class="version">v2026-04-21-F (종족 변경 PERMISSION_DENIED 수정) — 이 줄이 안 보이면 구버전입니다</div>
+<div class="wrap">
+<div id="panel2" style="display:none">
+<div class="card"><div class="lbl">필터 키워드 설정 (최근 시행법령 · 입법예고 공통)</div>
+<div id="kwList2" class="kw-list"></div>
+<div style="display:flex;gap:6px;margin-top:6px"><input id="kwInput2" placeholder="키워드 추가" style="flex:1;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none"><button class="btn-sm btn-p" onclick="addKW2()">추가</button><button class="btn-sm btn-g" onclick="saveKW()">저장</button></div>
+<p style="font-size:10px;color:var(--mu);margin-top:4px">※ 키워드 변경 시 최근 시행법령 탭에도 동일하게 반영됩니다.</p>
 </div>
-
-<div id="playerModal">
-  <div class="inner">
-    <button id="btnCloseModal" class="secondary" style="width:auto; padding:4px 12px; float:right; font-size:12px;">닫기</button>
-    <div id="modalBody"></div>
-  </div>
+<div class="card"><div class="lbl">입법 예고 (관보) — 환경/안전 필터 적용</div>
+<div class="filter-row">
+  <div><label>상위법</label><select id="gwParent" onchange="loadGwanbo()"><option value="">전체</option><option value="대기환경보전법">대기환경보전법</option><option value="물환경보전법">물환경보전법</option><option value="화학물질관리법">화학물질관리법</option><option value="산업안전보건법">산업안전보건법</option><option value="위험물안전관리법">위험물안전관리법</option><option value="소음·진동">소음·진동관리법</option><option value="악취방지법">악취방지법</option><option value="토양환경보전법">토양환경보전법</option><option value="환경영향평가법">환경영향평가법</option><option value="폐기물관리법">폐기물관리법</option><option value="온실가스">온실가스 배출권법</option><option value="탄소중립">탄소중립기본법</option><option value="고압가스">고압가스 안전관리법</option><option value="중대재해">중대재해 처벌법</option><option value="하수도법">하수도법</option></select></div>
+  <div><label>검색어</label><input id="gwSearch" placeholder="법령명/기관명" style="width:160px"></div>
+  <div><label>시작일</label><input id="gwFrom" type="date"></div>
+  <div><label>종료일</label><input id="gwTo" type="date"></div>
+  <div style="align-self:flex-end"><button class="btn-sm btn-p" onclick="loadGwanbo()">🔍 조회</button><button class="btn-sm btn-o" onclick="clearGwFilter()" style="margin-left:4px">초기화</button></div>
 </div>
+<div class="update-bar"><span id="gwInfo">환경/안전 관련 입법예고만 필터링하여 조회합니다.</span></div>
+<div class="tbl-wrap">
+<table class="law-tbl"><thead><tr><th style="width:8%">발행일</th><th style="width:10%">발행기관</th><th style="width:52%">제목</th><th style="width:15%">근거법령</th><th style="width:8%">구분</th><th style="width:7%">원문</th></tr></thead>
+<tbody id="gwBody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--mu)">🔍 조회 버튼을 클릭하세요</td></tr></tbody>
+</table></div>
+<div class="paging" id="gwPaging"></div>
+</div></div>
+<div id="panel1">
+<div class="card"><div class="lbl">필터 키워드 설정</div><div id="kwList" class="kw-list"></div><div style="display:flex;gap:6px;margin-top:6px"><input id="kwInput" placeholder="키워드 추가" style="flex:1;padding:6px 10px;border:1px solid var(--bd);border-radius:6px;font-size:12px;outline:none"><button class="btn-sm btn-p" onclick="addKW()">추가</button><button class="btn-sm btn-g" onclick="saveKW()">저장</button></div></div>
+<div class="card"><div class="lbl">검색 · 필터</div><div class="filter-row"><div><label>상위법</label><select id="fParent" onchange="applyFilter()"><option value="">전체</option><option value="대기환경보전법">대기환경보전법</option><option value="물환경보전법">물환경보전법</option><option value="화학물질관리법">화학물질관리법</option><option value="화학물질의 등록 및 평가">화학물질 등록·평가법</option><option value="산업안전보건법">산업안전보건법</option><option value="위험물안전관리법">위험물안전관리법</option><option value="소음·진동">소음·진동관리법</option><option value="악취방지법">악취방지법</option><option value="토양환경보전법">토양환경보전법</option><option value="환경영향평가법">환경영향평가법</option><option value="폐기물관리법">폐기물관리법</option><option value="자원순환">자원순환기본법</option><option value="온실가스">온실가스 배출권법</option><option value="탄소중립">탄소중립기본법</option><option value="환경오염시설">환경오염시설 통합관리법</option><option value="고압가스">고압가스 안전관리법</option><option value="중대재해">중대재해 처벌법</option><option value="하수도법">하수도법</option><option value="석면안전">석면안전관리법</option><option value="잔류성유기">잔류성유기오염물질법</option><option value="액화석유가스">액화석유가스법</option><option value="대기관리권역">대기관리권역 특별법</option></select></div><div><label>법령명</label><input id="fNm" placeholder="검색어" oninput="applyFilter()"></div><div><label>종류</label><select id="fTp" onchange="applyFilter()"><option value="">전체</option><option value="법률">법률</option><option value="대통령령">시행령</option><option value="부령">시행규칙</option><option value="고시">고시</option><option value="공고">공고</option><option value="예규">예규</option></select></div><div><label>공포일 이후</label><input id="fPdFrom" type="date" onchange="applyFilter()"></div><div><label>시행일 이후</label><input id="fEdFrom" type="date" onchange="applyFilter()"></div><div style="align-self:flex-end"><button class="btn-sm btn-o" onclick="clearFilter()">초기화</button></div></div></div>
+<div class="card"><div class="update-bar"><span id="updateTime">🔄 로딩 중...</span><button class="btn-sm btn-o" onclick="loadLawList()">새로고침</button><button class="btn-sm btn-o" onclick="exportXlsx()">📥 엑셀</button><button class="btn-sm btn-o" onclick="window.print()">🖨️ 인쇄</button></div>
+<div class="tbl-wrap"><table class="law-tbl"><thead><tr><th style="width:25%">법령명</th><th style="width:10%">종류/공포번호</th><th style="width:8%">구분</th><th style="width:9%">공포일</th><th style="width:9%">시행일</th><th style="width:39%">주요 개정 내용</th></tr></thead><tbody id="lawBody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--mu)">법규 목록 로딩 중...</td></tr></tbody></table></div>
+<div class="paging" id="paging"></div></div>
+</div>
+<div id="panel3" style="display:none"><div class="card"><div class="lbl">담당자 관리</div><div class="sf"><input id="stName" placeholder="이름"><input id="stEmail" placeholder="이메일"><select id="stLaw" multiple style="height:120px"><option value="대기환경보전법">대기환경보전법</option><option value="물환경보전법">물환경보전법</option><option value="화학물질관리법">화학물질관리법</option><option value="화학물질의 등록 및 평가에 관한 법률">화학물질 등록·평가법</option><option value="산업안전보건법">산업안전보건법</option><option value="위험물안전관리법">위험물안전관리법</option><option value="소음·진동관리법">소음·진동관리법</option><option value="악취방지법">악취방지법</option><option value="토양환경보전법">토양환경보전법</option><option value="환경영향평가법">환경영향평가법</option><option value="폐기물관리법">폐기물관리법</option><option value="자원순환기본법">자원순환기본법</option><option value="온실가스 배출권의 할당 및 거래에 관한 법률">온실가스 배출권법</option><option value="탄소중립·녹색성장 기본법">탄소중립기본법</option><option value="환경오염시설의 통합관리에 관한 법률">환경오염시설 통합관리법</option><option value="고압가스 안전관리법">고압가스 안전관리법</option><option value="중대재해 처벌 등에 관한 법률">중대재해 처벌법</option><option value="하수도법">하수도법</option><option value="석면안전관리법">석면안전관리법</option><option value="잔류성유기오염물질 관리법">잔류성유기오염물질 관리법</option><option value="액화석유가스의 안전관리 및 사업법">액화석유가스법</option><option value="대기관리권역의 대기환경개선에 관한 특별법">대기관리권역 특별법</option><option value="대기오염공정시험기준">대기오염공정시험기준</option><option value="수질오염공정시험기준">수질오염공정시험기준</option><option value="폐기물공정시험기준">폐기물공정시험기준</option></select><div style="display:flex;gap:6px"><button class="btn-sm btn-p" onclick="addStaff()">+ 추가</button><button class="btn-sm btn-g" onclick="syncStaff()">💾 서버 저장</button></div></div><div id="staffList"></div><div class="msg ok" id="syncMsg"></div><p style="font-size:10px;color:var(--mu);margin-top:6px">※ 매일 08:00 신규 개정 감지 → 담당 법규 매칭 → 메일 발송</p></div></div>
+</div></div>
 
-<div id="toast"></div>
+<div class="modal" id="reportModal"><div class="modal-box"><div class="modal-head"><h3 id="rptTitle">📋 AI 영향 검토 보고서</h3><button class="modal-close" onclick="closeModal()">✕ 닫기</button></div><div class="modal-body"><div id="rptBody"></div><div id="rptMeta" style="font-size:11px;color:var(--mu);margin-top:12px;padding-top:10px;border-top:1px solid var(--bd)"></div><div class="fb-area"><div style="font-size:12px;font-weight:900;margin-bottom:6px">💬 피드백 → 재분석</div><textarea id="fbText" placeholder="예: NF3 냉매 관련 온실가스법 연관 분석 추가해줘 / 별표8 배출기준 변경 상세 확인 필요"></textarea><div style="display:flex;gap:6px;margin-top:6px"><button class="btn-sm btn-p" onclick="submitFeedback()">🔄 피드백 반영 재분석</button><button class="btn-sm btn-o" onclick="deleteCache()">🗑️ 캐시 삭제 후 새로 분석</button></div></div></div></div></div>
 
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<div class="modal" id="deepModal"><div class="modal-box"><div class="modal-head"><h3 id="deepTitle">🔍 심층 분석</h3><button class="modal-close" onclick="closeDeep()">✕ 닫기</button></div><div class="modal-body"><div id="deepBody"></div><div id="deepMeta" style="font-size:11px;color:var(--mu);margin-top:12px;padding-top:10px;border-top:1px solid var(--bd)"></div></div></div></div>
 
 <script>
-"use strict";
+var GAS="https://script.google.com/macros/s/AKfycbx4MAK0fTGlhAyVUnIAdYXLA5Ml8KC4rARqFu3PcKNU8MzNCJ6vjvbcpt2jDdblm9fKWQ/exec";
+var staffData=[],kwData=[],lawItems=[],filteredItems=[],curPage=1,PAGE_SIZE=50,curReportLaw=null,curReportData=null;
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDKvEB_SrvDSADbqxX0LTgejksxtLt4G6U",
-  authDomain: "starcraft-dashboard.firebaseapp.com",
-  databaseURL: "https://starcraft-dashboard-default-rtdb.firebaseio.com/",
-  projectId: "starcraft-dashboard"
+function jp(p,cb,ms){return new Promise(function(res,rej){var old=document.getElementById("__"+cb);if(old)old.remove();var t=setTimeout(function(){delete window[cb];rej(new Error("응답없음"));},ms);window[cb]=function(d){clearTimeout(t);delete window[cb];res(d);};var s=document.createElement("script");s.id="__"+cb;s.src=GAS+"?"+Object.keys(p).map(function(k){return k+"="+encodeURIComponent(p[k]);}).join("&");document.body.appendChild(s);});}
+function switchTab(n){for(var i=1;i<=3;i++){document.getElementById("panel"+i).style.display=i===n?"block":"none";document.getElementById("tab"+i).className="tab"+(i===n?" active":"");}if(n===2&&typeof renderKW2==="function")renderKW2();}
+window.onload=function(){
+  loadKW();loadStaff();loadLawList();setTimeout(renderKW2,500);
+  // 관보 기본 2달
+  var d=new Date();d.setMonth(d.getMonth()-2);
+  document.getElementById("gwFrom").value=d.toISOString().slice(0,10);
+  document.getElementById("gwTo").value=new Date().toISOString().slice(0,10);
+  loadGwanbo();
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const auth = firebase.auth();
 
-const $ = id => document.getElementById(id);
-const qsa = sel => [...document.querySelectorAll(sel)];
-const esc = s => String(s).replace(/[&<>"']/g, c =>
-  ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+// ── 담당자 ──
+function renderStaff(){var h="";staffData.forEach(function(s,i){h+='<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--bd);flex-wrap:wrap"><span style="font-size:12px;font-weight:700">'+esc(s.name)+'</span><span style="font-size:11px;color:var(--mu)">'+esc(s.email)+'</span><span style="font-size:10px;color:var(--p)">'+((s.laws||[]).length)+'개</span><button class="btn-sm" style="margin-left:auto;background:var(--red);color:#fff;padding:4px 10px;font-size:10px" onclick="delStaff('+i+')">삭제</button></div>';});document.getElementById("staffList").innerHTML=h;}
+function addStaff(){var n=document.getElementById("stName").value.trim(),e=document.getElementById("stEmail").value.trim();if(!n||!e){alert("이름/이메일 입력");return;}var sel=document.getElementById("stLaw"),laws=[];for(var i=0;i<sel.options.length;i++){if(sel.options[i].selected)laws.push(sel.options[i].value);}staffData.push({name:n,email:e,laws:laws});renderStaff();document.getElementById("stName").value="";document.getElementById("stEmail").value="";}
+function delStaff(i){staffData.splice(i,1);renderStaff();}
+async function syncStaff(){try{await jp({action:"saveStaff",data:JSON.stringify(staffData),callback:"__ss"},"__ss",10000);var m=document.getElementById("syncMsg");m.textContent="✅ 서버 저장 완료";m.style.display="block";setTimeout(function(){m.style.display="none";},3000);}catch(ex){alert("실패");}}
+async function loadStaff(){try{var d=await jp({action:"getStaff",callback:"__gs"},"__gs",10000);if(d.staff&&d.staff.length){staffData=d.staff;renderStaff();}}catch(ex){}}
 
-/* 종족 아이콘 (인라인 SVG) */
-const RACE_LABEL = { T: "테란", Z: "저그", P: "프로토스", R: "랜덤" };
-function raceIcon(race, size=18) {
-  const r = race || "R";
-  const s = size;
-  if (r === "T") {
-    return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
-      <path d="M16 2 L28 6 L28 16 Q28 26 16 30 Q4 26 4 16 L4 6 Z" fill="#2563eb"/>
-      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">T</text>
-    </svg>`;
-  }
-  if (r === "Z") {
-    return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
-      <circle cx="16" cy="16" r="13" fill="#9333ea"/>
-      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">Z</text>
-    </svg>`;
-  }
-  if (r === "P") {
-    return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
-      <polygon points="16,2 28,16 16,30 4,16" fill="#f59e0b"/>
-      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">P</text>
-    </svg>`;
-  }
-  return `<svg class="race-ico" viewBox="0 0 32 32" width="${s}" height="${s}">
-    <circle cx="16" cy="16" r="13" fill="#6b7280"/>
-    <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">?</text>
-  </svg>`;
-}
-const RACE_CYCLE = { R: "T", T: "Z", Z: "P", P: "R" };
+// ── 키워드 ──
+function renderKW(){var h="";kwData.forEach(function(kw,i){h+='<span class="kw-tag">'+esc(kw)+'<span class="kw-del" onclick="delKW('+i+')">×</span></span>';});document.getElementById("kwList").innerHTML=h;}
+function addKW(){var v=document.getElementById("kwInput").value.trim();if(v&&kwData.indexOf(v)<0){kwData.push(v);renderKW();document.getElementById("kwInput").value="";}}
+function delKW(i){kwData.splice(i,1);renderKW();}
+async function saveKW(){try{await jp({action:"saveFilterKW",data:JSON.stringify(kwData),callback:"__skw"},"__skw",10000);alert("키워드 저장 완료 — 목록 재스캔 중...");document.getElementById("lawBody").innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--p);font-weight:700"><div class="spin" style="border-color:#bfdbfe;border-top-color:var(--p);margin:0 auto 8px"></div>키워드 반영 재스캔 중...</td></tr>';var d=await jp({action:"rescan",callback:"__rs"},"__rs",90000);lawItems=d.items||[];applyFilter();document.getElementById("updateTime").textContent="🔄 "+new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})+" | "+lawItems.length+"건 (키워드 반영)";}catch(ex){alert("실패: "+ex.message);}}
+async function loadKW(){try{var d=await jp({action:"getFilterKW",callback:"__gkw"},"__gkw",10000);kwData=d.keywords||[];renderKW();}catch(ex){kwData=["대기","수질","화학물질","산업안전","위험물","소음","진동","악취","토양","환경영향","폐기물","배출","온실가스","공정시험"];renderKW();}}
 
-function toast(msg, err=false) {
-  const t = $("toast");
-  t.textContent = msg;
-  t.classList.toggle("err", err);
-  t.classList.add("show");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(()=>t.classList.remove("show"), 2500);
+// ── 법규 목록 ──
+async function loadLawList(){
+  document.getElementById("lawBody").innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--p);font-weight:700"><div class="spin" style="border-color:#bfdbfe;border-top-color:var(--p);margin:0 auto 8px"></div>법제처 데이터 조회 중...</td></tr>';
+  try{
+    var d=await jp({action:"lawlist",callback:"__ll"},"__ll",60000);
+    lawItems=d.items||[];
+    applyFilter();
+    document.getElementById("updateTime").textContent="🔄 "+new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})+" | "+lawItems.length+"건";
+  }catch(ex){document.getElementById("lawBody").innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--red)">조회 실패: '+esc(ex.message)+'</td></tr>';}
 }
 
-/* 인앱 브라우저 */
-function detectBrowser() {
-  const ua = navigator.userAgent;
-  return {
-    isKakao: /KAKAOTALK/i.test(ua),
-    isNaver: /NAVER\(/i.test(ua),
-    isLine: /Line\//i.test(ua),
-    isFB: /FBAN|FBAV/i.test(ua),
-    isInsta: /Instagram/i.test(ua),
-    isIOS: /iPhone|iPad|iPod/i.test(ua),
-    isAndroid: /Android/i.test(ua),
-  };
+function applyFilter(){
+  var fParent=document.getElementById("fParent").value,fNm=(document.getElementById("fNm").value||"").trim().toLowerCase(),fTp=document.getElementById("fTp").value,fPdFrom=document.getElementById("fPdFrom").value.replace(/-/g,""),fEdFrom=document.getElementById("fEdFrom").value.replace(/-/g,"");
+  filteredItems=lawItems.filter(function(it){
+    if(fParent&&(it.nm||"").indexOf(fParent)<0) return false;
+    if(fNm&&(it.nm||"").toLowerCase().indexOf(fNm)<0) return false;
+    if(fTp){if(fTp==="부령"){if(it.tp==="대통령령"||it.tp==="법률")return false;if(!it.tp||(it.tp.indexOf("부령")<0&&it.tp!=="총리령"))return false;}else if(it.tp!==fTp) return false;}
+    var pd=(it.pd||"").replace(/-/g,"");if(fPdFrom&&pd<fPdFrom) return false;
+    var ed=(it.ed||"").replace(/-/g,"");if(fEdFrom&&ed<fEdFrom) return false;
+    return true;
+  });
+  curPage=1;renderPage();
+}
+function clearFilter(){document.getElementById("fParent").value="";document.getElementById("fNm").value="";document.getElementById("fTp").value="";document.getElementById("fPdFrom").value="";document.getElementById("fEdFrom").value="";applyFilter();}
+
+function renderPage(){
+  var total=filteredItems.length,totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  if(curPage>totalPages) curPage=totalPages;
+  var start=(curPage-1)*PAGE_SIZE;
+  renderLawList(filteredItems.slice(start,start+PAGE_SIZE),start);
+  var h='<button class="pg-arrow" onclick="goPage('+Math.max(1,curPage-1)+')"'+(curPage===1?" disabled":"")+'>‹</button>';
+  var sp=Math.max(1,curPage-3),ep=Math.min(totalPages,sp+6);if(ep-sp<6)sp=Math.max(1,ep-6);
+  for(var i=sp;i<=ep;i++)h+='<button class="pg-btn'+(i===curPage?" active":"")+'" onclick="goPage('+i+')">'+i+'</button>';
+  h+='<button class="pg-arrow" onclick="goPage('+Math.min(totalPages,curPage+1)+')"'+(curPage===totalPages?" disabled":"")+'>›</button>';
+  h+='<span style="margin-left:10px;font-size:11px;color:var(--mu);font-weight:700">'+curPage+'/'+totalPages+' ('+filteredItems.length+'건)</span>';
+  document.getElementById("paging").innerHTML=h;
+}
+function goPage(n){curPage=n;renderPage();var w=document.querySelector(".tbl-wrap");if(w)w.scrollTop=0;}
+
+function renderLawList(items,startIdx){
+  if(!items.length){document.getElementById("lawBody").innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--mu)">조건에 맞는 법규 없음</td></tr>';return;}
+  var today=new Date();today.setHours(0,0,0,0);var d30=new Date(today.getTime()+30*86400000);
+  var h="";
+  items.forEach(function(it,li){
+    var gi=startIdx+li;
+    var edDate=parseDate(it.ed),isDue=edDate&&edDate>=today&&edDate<=d30;
+    h+='<tr'+(isDue?' class="due-soon"':'')+'>'+
+      '<td class="law-nm" onclick="openReport('+gi+')" title="클릭→AI보고서">'+esc(it.nm)+'<br><span style="font-size:10px;color:var(--mu);font-weight:400">'+esc(it.dept||"")+'</span></td>'+
+      '<td style="text-align:center">'+typeBadge(it.tp)+'<br><span style="font-size:9px;color:var(--mu)">'+esc(it.pn||"")+'</span></td>'+
+      '<td style="font-size:10px">'+esc(it.rp||"")+'</td>'+
+      '<td style="font-size:10px;white-space:nowrap">'+fmtDate(it.pd)+'</td>'+
+      '<td style="font-size:10px;white-space:nowrap;font-weight:700;color:var(--p)">'+fmtDate(it.ed)+(isDue?'<span class="due-badge">임박</span>':"")+'</td>'+
+      '<td class="law-summary">'+(it.summary?esc(it.summary):"")+'</td></tr>';
+  });
+  document.getElementById("lawBody").innerHTML=h;
 }
 
-(function handleInApp() {
-  const b = detectBrowser();
-  const isInApp = b.isKakao || b.isNaver || b.isLine || b.isFB || b.isInsta;
-  if (!isInApp) return;
+function parseDate(d){if(!d||d.length<8)return null;var s=d.replace(/-/g,"");return new Date(parseInt(s.slice(0,4)),parseInt(s.slice(4,6))-1,parseInt(s.slice(6,8)));}
+function typeBadge(tp){if(!tp)return"";if(tp==="법률")return'<span class="badge b-law">법률</span>';if(tp==="대통령령")return'<span class="badge b-decree">시행령</span>';if(tp!=="대통령령"&&(tp.indexOf("부령")>=0||tp==="총리령"))return'<span class="badge b-rule">'+esc(tp)+'</span>';if(tp==="고시")return'<span class="badge b-gosi">고시</span>';if(tp==="공고")return'<span class="badge b-gongo">공고</span>';if(tp==="예규")return'<span class="badge b-yegyu">예규</span>';return'<span class="badge" style="background:#f1f5f9;color:var(--mu)">'+esc(tp)+'</span>';}
 
-  const appName = b.isKakao ? "카카오톡" : b.isNaver ? "네이버"
-                : b.isLine ? "라인" : b.isFB ? "페이스북"
-                : b.isInsta ? "인스타그램" : "앱";
+function exportXlsx(){
+  var rows=[["법령명","종류","공포번호","구분","공포일","시행일","주요내용"]];
+  filteredItems.forEach(function(it){
+    rows.push([it.nm||"",it.tp||"",it.pn||"",it.rp||"",it.pd||"",it.ed||"",(it.summary||"").slice(0,200)]);
+  });
+  var csv="\uFEFF"+rows.map(function(r){return r.map(function(c){return'"'+String(c).replace(/"/g,'""')+'"';}).join(",");}).join("\n");
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="법규목록_"+new Date().toISOString().slice(0,10)+".csv";a.click();
+}
 
-  $("normalLogin").style.display = "none";
-  $("inappLogin").style.display = "block";
+// ── AI 보고서 ──
+async function openReport(idx){
+  var it=lawItems[idx];if(!it)return;curReportLaw=it;
+  var modal=document.getElementById("reportModal"),body=document.getElementById("rptBody"),meta=document.getElementById("rptMeta");
+  document.getElementById("rptTitle").textContent="📋 "+it.nm;
+  document.getElementById("fbText").value="";
+  modal.style.display="block";
+  body.innerHTML='<div style="text-align:center;padding:30px;color:var(--p);font-weight:700"><div class="spin" style="border-color:#bfdbfe;border-top-color:var(--p);margin:0 auto 8px"></div>AI 분석 중... (최대 120초)</div>';
+  meta.textContent="";
+  try{
+    var d=await jp({action:"analyzeLaw",lawName:it.nm,mst:it.mst,lawType:it.type,callback:"__al"},"__al",120000);
+    if(d.error){body.innerHTML='<div style="color:var(--red);padding:20px">분석 실패: '+esc(d.error)+'</div>';return;}
+    var rpt=d.report||{};curReportData=rpt;
+    body.innerHTML=renderReport(rpt.data||{},it);
+    meta.textContent=(d.cached?"💾 캐시":"🤖 AI")+" · "+(rpt.model||"")+" · "+(rpt.date||"");
+  }catch(ex){body.innerHTML='<div style="color:var(--red);padding:20px">오류: '+esc(ex.message)+'</div>';}
+}
 
-  let extBtn = "";
-  if (b.isAndroid) extBtn = '<button id="btnOpenExt">🌐 외부 브라우저로 열기</button>';
-  else if (b.isIOS) extBtn = '<button id="btnCopyUrl">📋 URL 복사 (Safari에 붙여넣기)</button>';
+// ── 피드백 ──
+async function submitFeedback(){
+  var fb=document.getElementById("fbText").value.trim();
+  if(!fb){alert("피드백 내용을 입력하세요");return;}
+  if(!curReportLaw||!curReportData) return;
+  var body=document.getElementById("rptBody"),meta=document.getElementById("rptMeta");
+  body.innerHTML='<div style="text-align:center;padding:30px;color:var(--p);font-weight:700"><div class="spin" style="border-color:#bfdbfe;border-top-color:var(--p);margin:0 auto 8px"></div>피드백 반영 재분석 중...</div>';
+  try{
+    var d=await jp({action:"refine",feedback:fb,prevReport:JSON.stringify(curReportData.data||{}),lawName:curReportLaw.nm,callback:"__rf"},"__rf",120000);
+    if(d.error){body.innerHTML='<div style="color:var(--red);padding:20px">재분석 실패: '+esc(d.error)+'</div>';return;}
+    var rpt=d.report||d;curReportData=rpt;
+    body.innerHTML=renderReport(rpt.data||{},curReportLaw);
+    meta.textContent="🔄 피드백 반영 · "+(rpt.model||"")+" · "+(rpt.date||"");
+    document.getElementById("fbText").value="";
+  }catch(ex){body.innerHTML='<div style="color:var(--red);padding:20px">오류: '+esc(ex.message)+'</div>';}
+}
 
-  $("inappWarn").innerHTML = `
-    <b>⚠️ ${appName} 내부 브라우저입니다</b><br>
-    Google 정책상 여기서는 구글 로그인이 <b>차단</b>됩니다 (403).<br><br>
-    아래 <b>"게스트로 바로 시작"</b>을 누르면 구글 로그인 없이 이용할 수 있습니다.
-    ${extBtn ? `<div style="margin-top:8px; font-size:12px; color:#888;">구글 로그인을 꼭 쓰고 싶다면:</div>${extBtn}` : ""}
-  `;
+async function deleteCache(){
+  if(!curReportLaw) return;
+  if(!confirm("캐시를 삭제하고 새로 분석하시겠습니까?")) return;
+  try{await jp({action:"saveReport",key:curReportLaw.nm,data:"",callback:"__dc"},"__dc",10000);}catch(ex){}
+  openReport(lawItems.indexOf(curReportLaw));
+}
 
-  if (b.isAndroid) {
-    $("btnOpenExt").addEventListener("click", () => {
-      const url = location.href;
-      if (b.isKakao) {
-        location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(url);
-      } else {
-        const noScheme = url.replace(/^https?:\/\//, "");
-        location.href = `intent://${noScheme}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
-      }
+function renderReport(pd,it){
+  var h="",lawLink="https://www.law.go.kr/법령/"+encodeURIComponent(it.nm||"");
+  // 1. 사업장 해당
+  var rel=pd.사업장해당여부||{};
+  if(rel.해당){var isY=rel.해당==="Y";h+='<div class="rpt-sec"><div class="rpt-title">'+(isY?"🔴":"🟢")+' 사업장 해당: <span style="color:'+(isY?"var(--red)":"var(--grn)")+'">'+esc(rel.해당)+'</span></div><div class="rpt-box">'+esc(rel.근거||"")+'</div></div>';}
+  // 2. 핵심변경
+  if(pd.핵심변경사항) h+='<div class="rpt-sec"><div class="rpt-title">⚡ 핵심 변경사항</div><div class="rpt-box" style="background:#eff6ff;border-color:#bfdbfe;font-weight:700">'+esc(pd.핵심변경사항)+'</div></div>';
+  // 3. 이행기한
+  if(pd.이행기한&&pd.이행기한!=="해당없음") h+='<div class="rpt-sec"><div class="rpt-title">⏰ 이행 기한</div><div class="rpt-box" style="background:#fef3c7;border-color:#fde68a;color:#92400e;font-weight:700">'+esc(pd.이행기한)+'</div></div>';
+  // 4. 현업추진
+  var tasks=pd.현업추진업무||[];
+  if(tasks.length){h+='<div class="rpt-sec"><div class="rpt-title">🔧 현업 추진 업무</div>';tasks.forEach(function(t,i){h+='<div class="rpt-box" style="margin-bottom:6px"><b>'+(i+1)+'. '+esc(t.업무||"")+'</b><br>'+esc(t.세부내용||"")+'<br><span style="font-size:11px;color:var(--mu)">담당: '+esc(t.담당||"환경안전팀")+(t.기한?" | 기한: "+esc(t.기한):"")+'</span></div>';});h+='</div>';}
+  // 5. 개정사유
+  if(pd.개정사유) h+='<div class="rpt-sec"><div class="rpt-title">📌 개정 사유 (참고)</div><div class="rpt-box" style="font-size:12px;color:#475569">'+esc(pd.개정사유)+'</div></div>';
+  // 6. 변경비교표
+  var ch=pd.변경비교표||[];
+  if(ch.length){
+    var pc=pd.석유화학관련건수||0;
+    h+='<div class="rpt-sec"><div class="rpt-title">📊 변경 비교표'+(pc>0?' <span style="background:var(--ora);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px">🏭 석유화학 '+pc+'건</span>':"")+'</div><div style="overflow-x:auto"><table class="rpt-tbl"><thead><tr><th style="width:15%">조문</th><th style="width:25%">현행</th><th style="width:25%">개정</th><th style="width:6%">유형</th><th style="width:24%">영향</th><th style="width:5%">상세</th></tr></thead><tbody>';
+    ch.forEach(function(c,ci){var ip=c.석유화학관련==="Y";
+      h+='<tr'+(ip?' class="petro-row"':'')+'>'+
+      '<td style="font-weight:700;white-space:nowrap"><a href="'+lawLink+'" target="_blank" style="color:var(--p);text-decoration:underline">'+esc(c.조문||"")+'</a>'+(ip?'<span class="petro-badge">🏭</span>':"")+'</td>'+
+      '<td>'+esc(c.현행||"")+'</td><td>'+esc(c.개정||"")+'</td><td style="text-align:center">'+esc(c.유형||"")+'</td><td>'+esc(c.영향||"")+'</td>'+
+      '<td style="text-align:center"><button class="deep-btn" onclick="openDeep('+ci+')">🔍</button></td></tr>';
     });
+    h+='</tbody></table></div><p style="font-size:10px;color:var(--mu);margin-top:4px">💡 조문→법제처 | 🔍→연관법규 심층분석</p></div>';
+    window._curCmp=ch;window._curLN=it.nm;
   }
-  if (b.isIOS) {
-    $("btnCopyUrl").addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(location.href);
-        toast("URL 복사됨 - Safari 주소창에 붙여넣으세요");
-      } catch {
-        prompt("이 URL을 복사해서 Safari에 붙여넣으세요:", location.href);
-      }
+  // 7. 부칙
+  if(pd.부칙&&pd.부칙!=="해당없음"&&pd.부칙!=="해당 사항 없음") h+='<div class="rpt-sec"><div class="rpt-title">📎 부칙</div><div class="rpt-box" style="background:#fdf4ff;border-color:#e9d5ff;color:#6b21a8">'+esc(pd.부칙)+'</div></div>';
+  // 8. 별표판단
+  var bj=pd.별표판단||[];
+  if(bj.length){h+='<div class="rpt-sec"><div class="rpt-title">📋 별표 판단</div>';bj.forEach(function(b){h+='<div class="rpt-box" style="margin-bottom:4px;padding:8px"><b>'+esc(b.구분||"")+'</b> '+esc(b.제목||"")+' <span style="font-size:14px">'+esc(b.중요도||"")+'</span> <span style="font-size:11px;color:var(--mu)">'+esc(b.사유||"")+'</span></div>';});h+='</div>';}
+  // 8b. 별표참고
+  if(pd.별표참고&&pd.별표참고!=="해당없음") h+='<div class="rpt-sec"><div class="rpt-title">⚠️ 별표·별지 참고</div><div class="rpt-box" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">'+esc(pd.별표참고)+'<br><a href="'+lawLink+'" target="_blank" style="color:#2563eb;font-weight:700;font-size:12px">→ 법제처 원문 바로가기</a></div></div>';
+  if(!h) h='<div style="color:var(--mu);text-align:center;padding:20px">분석 데이터 없음</div>';
+  return h;
+}
+
+// ── 심층분석 ──
+async function openDeep(ci){
+  var c=(window._curCmp||[])[ci],ln=window._curLN||"";if(!c||!ln)return;
+  var modal=document.getElementById("deepModal"),body=document.getElementById("deepBody"),meta=document.getElementById("deepMeta");
+  document.getElementById("deepTitle").textContent="🔍 "+ln+" "+c.조문;
+  modal.style.display="block";
+  body.innerHTML='<div style="text-align:center;padding:30px;color:var(--p);font-weight:700"><div class="spin" style="border-color:#bfdbfe;border-top-color:var(--p);margin:0 auto 8px"></div>심층 분석 중... (최대 120초)</div>';
+  meta.textContent="";
+  var content=[c.현행,c.개정,c.영향].filter(Boolean).join(" | ");
+  try{
+    var d=await jp({action:"deepAnalyze",lawName:ln,article:c.조문||"",content:content,callback:"__dp"},"__dp",120000);
+    if(d.error){body.innerHTML='<div style="color:var(--red);padding:20px">'+esc(d.error)+'</div>';return;}
+    var rpt=d.report||{},pd=rpt.data||{};body.innerHTML=renderDeep(pd);
+    meta.textContent=(d.cached?"💾 캐시":"🤖 AI")+" · "+(rpt.model||"")+" · "+(rpt.date||"");
+  }catch(ex){body.innerHTML='<div style="color:var(--red);padding:20px">'+esc(ex.message)+'</div>';}
+}
+function renderDeep(pd){
+  var h="";
+  if(pd.종합판단) h+='<div class="rpt-box" style="background:#eff6ff;border-color:#bfdbfe;font-weight:700;margin-bottom:12px">💡 '+esc(pd.종합판단)+'</div>';
+  (pd.적용설비||[]).length&&(h+='<div class="deep-sec"><h4>🏭 영향 설비</h4><ul>',pd.적용설비.forEach(function(x){h+='<li><b>'+esc(x.설비명||"")+'</b> — '+esc(x.영향||"")+(x.확인사항?'<br><span style="color:var(--mu)">→ '+esc(x.확인사항)+'</span>':"")+'</li>';}),h+='</ul></div>');
+  (pd.연관법규||[]).length&&(h+='<div class="deep-sec"><h4>📚 연관 법규</h4><ul>',pd.연관법규.forEach(function(x){h+='<li><b>'+esc(x.법규명||"")+'</b> '+esc(x.조문||"")+' — '+esc(x.연관내용||"")+'</li>';}),h+='</ul></div>');
+  (pd.현장확인사항||[]).length&&(h+='<div class="deep-sec"><h4>✅ 현장 확인</h4><ul>',pd.현장확인사항.forEach(function(x){h+='<li><b>'+esc(x.항목||"")+'</b> — '+esc(x.세부내용||"")+(x.문서?' <span style="color:var(--p)">['+esc(x.문서)+']</span>':"")+'</li>';}),h+='</ul></div>');
+  (pd.필요조치||[]).length&&(h+='<div class="deep-sec"><h4>🔧 필요 조치</h4><ul>',pd.필요조치.forEach(function(x){h+='<li><b>'+esc(x.조치||"")+'</b> — '+esc(x.시기||"")+' / '+esc(x.담당||"")+'</li>';}),h+='</ul></div>');
+  if(pd.위반시처분) h+='<div class="deep-sec" style="border-left-color:var(--red);background:#fef2f2"><h4 style="color:var(--red)">⚠️ 위반 시</h4><p style="font-size:12px">'+esc(pd.위반시처분)+'</p></div>';
+  return h||'<div style="color:var(--mu);text-align:center;padding:20px">데이터 없음</div>';
+}
+
+function closeDeep(){document.getElementById("deepModal").style.display="none";}
+function closeModal(){document.getElementById("reportModal").style.display="none";}
+// ── 관보 입법예고 ──
+// ── Tab2 키워드 표시+편집 ──
+function renderKW2(){var h="";kwData.forEach(function(kw,i){h+='<span class="kw-tag">'+esc(kw)+'<span class="kw-del" onclick="delKW2('+i+')">×</span></span>';});document.getElementById("kwList2").innerHTML=h||'<span style="font-size:11px;color:var(--mu)">키워드 없음</span>';}
+function addKW2(){var v=document.getElementById("kwInput2").value.trim();if(v&&kwData.indexOf(v)<0){kwData.push(v);renderKW();renderKW2();document.getElementById("kwInput2").value="";}}
+function delKW2(i){kwData.splice(i,1);renderKW();renderKW2();}
+function clearGwFilter(){document.getElementById("gwParent").value="";document.getElementById("gwSearch").value="";var d=new Date();d.setMonth(d.getMonth()-2);document.getElementById("gwFrom").value=d.toISOString().slice(0,10);document.getElementById("gwTo").value=new Date().toISOString().slice(0,10);loadGwanbo();}
+
+var gwPage=1,gwTotal=0,gwAllItems=[];
+async function loadGwanbo(page){
+  gwPage=page||1;
+  var body=document.getElementById("gwBody");
+  body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--p);font-weight:700"><div class="spin" style="border-color:#bfdbfe;border-top-color:var(--p);margin:0 auto 8px"></div>관보 입법예고 조회 중...</td></tr>';
+  var search=document.getElementById("gwSearch").value.trim();
+  var from=document.getElementById("gwFrom").value.replace(/-/g,"");
+  var to=document.getElementById("gwTo").value.replace(/-/g,"");
+  var params={action:"gwanbo",pageNo:String(gwPage),pageSize:"50",envFilter:"on",callback:"__gw"};
+  if(from) params.reqFrom=from;
+  if(to) params.reqTo=to;
+  if(search) params.search=search;
+  try{
+    var d=await jp(params,"__gw",30000);
+    if(d.error){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--red)">'+esc(d.error)+'</td></tr>';return;}
+    gwTotal=d.totalCount||0;
+    var items=d.items||[];
+    gwAllItems=items;
+    // 클라이언트 필터: 상위법 + 검색어
+    var gwPar=document.getElementById("gwParent").value;
+    if(gwPar){items=items.filter(function(it){return(it.title||"").indexOf(gwPar)>=0||(it.law||"").indexOf(gwPar)>=0;});}
+    var gwSrch=(document.getElementById("gwSearch").value||"").trim().toLowerCase();
+    if(gwSrch){items=items.filter(function(it){return((it.title||"")+(it.org||"")+(it.law||"")).toLowerCase().indexOf(gwSrch)>=0;});}
+    gwTotal=items.length;
+    document.getElementById("gwInfo").textContent="환경/안전 필터 적용 | "+items.length+"건"+(d.filtered?" (서버필터)":"");
+    if(!items.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--mu)">환경/안전 관련 입법예고 없음</td></tr>';document.getElementById("gwPaging").innerHTML="";return;}
+    var h="";
+    items.forEach(function(it){
+      h+='<tr><td style="font-size:10px;white-space:nowrap">'+esc(it.date)+'</td>'+
+        '<td style="font-size:11px;font-weight:700">'+esc(it.org)+'</td>'+
+        '<td><a href="'+esc(it.pdf)+'" target="_blank" style="color:var(--p);font-weight:700;text-decoration:underline;font-size:12px">'+esc(it.title)+'</a></td>'+
+        '<td style="font-size:10px;color:var(--mu)">'+esc(it.law)+'</td>'+
+        '<td style="font-size:10px;text-align:center">'+esc(it.type)+'</td>'+
+        '<td style="text-align:center"><a href="'+esc(it.pdf)+'" target="_blank" class="btn-sm" style="padding:4px 8px;font-size:10px;background:var(--p);color:#fff;text-decoration:none;border-radius:4px">PDF</a></td></tr>';
     });
-  }
-})();
-
-/* Auth */
-$("btnLogin").addEventListener("click", async () => {
-  try {
-    await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-  } catch (err) {
-    if (err && (err.code === "auth/popup-blocked" ||
-                err.code === "auth/operation-not-supported-in-this-environment")) {
-      auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
-    } else if (err && err.code === "auth/unauthorized-domain") {
-      toast("Firebase 승인된 도메인에 이 사이트를 추가하세요", true);
-    } else {
-      toast("로그인 실패: " + (err.message || err), true);
-    }
-  }
-});
-
-async function guestLogin(btn) {
-  btn.disabled = true;
-  try {
-    await auth.signInAnonymously();
-    toast("게스트로 로그인되었습니다");
-  } catch (err) {
-    if (err.code === "auth/admin-restricted-operation" ||
-        err.code === "auth/operation-not-allowed") {
-      toast("Firebase Console에서 '익명 인증'을 활성화해 주세요", true);
-    } else {
-      toast("게스트 로그인 실패: " + err.message, true);
-    }
-  } finally {
-    btn.disabled = false;
-  }
-}
-$("btnGuest").addEventListener("click", () => guestLogin($("btnGuest")));
-$("btnGuestInApp").addEventListener("click", () => guestLogin($("btnGuestInApp")));
-
-$("btnLogout").addEventListener("click", () => auth.signOut());
-auth.getRedirectResult().catch(err => {
-  if (err && err.message) toast("로그인 오류: " + err.message, true);
-});
-auth.onAuthStateChanged(user => {
-  if (user) {
-    $("loginBox").style.display = "none";
-    $("app").style.display = "block";
-    $("userName").textContent = user.isAnonymous ? "👤 게스트"
-                              : (user.displayName || user.email || "로그인됨");
-    bootData();
-  } else {
-    $("loginBox").style.display = "block";
-    $("app").style.display = "none";
-  }
-});
-
-/* Tabs */
-qsa(".tabs button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    qsa(".page").forEach(p => p.classList.remove("active"));
-    qsa(".tabs button").forEach(b => b.classList.remove("active"));
-    $(btn.dataset.tab).classList.add("active");
-    btn.classList.add("active");
-  });
-});
-
-/* State */
-let players = [];
-let games = [];
-let assign = {};
-let editingGameId = null;
-let currentModalPlayer = null;
-
-$("date").value = new Date().toISOString().split("T")[0];
-$("date").addEventListener("change", renderDayGames);
-
-function bootData() {
-  db.ref("players").on("value", snap => {
-    players = [];
-    snap.forEach(c => {
-      const v = c.val();
-      const name = (typeof v === "string") ? v : (v && v.name) ? v.name : null;
-      const race = (v && v.race) || "R";
-      if (name) players.push({ id: c.key, name, race });
-    });
-    renderRaceLegend();
-    renderPlayers();
-    renderHelperSelect();
-    renderAssignChips();
-  }, err => toast("선수 로딩 실패: " + err.message, true));
-
-  db.ref("games").on("value", snap => {
-    games = [];
-    snap.forEach(c => {
-      const v = c.val();
-      if (v && v.teams && v.winner) games.push({ id: c.key, ...v });
-    });
-    renderRank();
-    renderClubStats();
-    renderDayGames();
-    if (currentModalPlayer) openPlayerModal(currentModalPlayer);
-  }, err => toast("경기 로딩 실패: " + err.message, true));
+    body.innerHTML=h;
+    // 페이징
+    var totalPages=Math.max(1,Math.ceil(gwTotal/20));
+    var ph='<button class="pg-arrow" onclick="loadGwanbo('+Math.max(1,gwPage-1)+')"'+(gwPage===1?" disabled":"")+'>‹</button>';
+    var sp=Math.max(1,gwPage-3),ep=Math.min(totalPages,sp+6);
+    for(var i=sp;i<=ep;i++) ph+='<button class="pg-btn'+(i===gwPage?" active":"")+'" onclick="loadGwanbo('+i+')">'+i+'</button>';
+    ph+='<button class="pg-arrow" onclick="loadGwanbo('+Math.min(totalPages,gwPage+1)+')"'+(gwPage===totalPages?" disabled":"")+'>›</button>';
+    ph+='<span style="margin-left:10px;font-size:11px;color:var(--mu);font-weight:700">'+gwPage+'/'+totalPages+' ('+gwTotal+'건)</span>';
+    document.getElementById("gwPaging").innerHTML=ph;
+  }catch(ex){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--red)">'+esc(ex.message)+'</td></tr>';}
 }
 
-/* 선수 */
-$("btnAddPlayer").addEventListener("click", addPlayer);
-$("newPlayer").addEventListener("keydown", e => { if (e.key === "Enter") addPlayer(); });
-
-function addPlayer() {
-  const input = $("newPlayer");
-  const name = input.value.trim();
-  if (!name) return toast("이름을 입력하세요", true);
-  if (players.some(p => p.name === name)) return toast("이미 등록된 선수입니다", true);
-
-  const btn = $("btnAddPlayer");
-  btn.disabled = true;
-  db.ref("players").push({
-    name,
-    race: "R",
-    createdAt: firebase.database.ServerValue.TIMESTAMP,
-    createdBy: auth.currentUser ? auth.currentUser.uid : null
-  })
-  .then(() => { input.value = ""; toast(`"${name}" 추가됨`); })
-  .catch(err => { toast("추가 실패: " + err.message, true); console.error(err); })
-  .finally(() => { btn.disabled = false; });
-}
-
-function renderRaceLegend() {
-  $("raceLegend").innerHTML = `
-    <span>${raceIcon("T",14)} 테란</span>
-    <span>${raceIcon("Z",14)} 저그</span>
-    <span>${raceIcon("P",14)} 프로토스</span>
-    <span>${raceIcon("R",14)} 랜덤/미설정</span>
-  `;
-}
-
-function renderPlayers() {
-  $("playerCount").textContent = players.length ? `(${players.length}명)` : "";
-  if (!players.length) {
-    $("playerList").innerHTML = '<div class="empty">등록된 선수가 없습니다</div>';
-    return;
-  }
-  const sorted = [...players].sort((a,b)=>a.name.localeCompare(b.name,"ko"));
-  $("playerList").innerHTML = sorted.map(p => `
-    <div class="player">
-      <div class="name" data-name="${esc(p.name)}">${esc(p.name)}</div>
-      <button class="race-btn" data-id="${p.id}" title="탭하여 종족 변경">${raceIcon(p.race,14)} ${p.race}</button>
-      <button class="del" data-id="${p.id}" data-name="${esc(p.name)}">삭제</button>
-    </div>
-  `).join("");
-  qsa("#playerList .name").forEach(el =>
-    el.addEventListener("click", () => openPlayerModal(el.dataset.name)));
-  qsa("#playerList .race-btn").forEach(el =>
-    el.addEventListener("click", () => cyclePlayerRace(el.dataset.id)));
-  qsa("#playerList .del").forEach(el =>
-    el.addEventListener("click", () => deletePlayer(el.dataset.id, el.dataset.name)));
-}
-
-function cyclePlayerRace(id) {
-  const p = players.find(x => x.id === id);
-  if (!p) return;
-  const next = RACE_CYCLE[p.race || "R"];
-  // 레거시 문자열 데이터(name만 있는 경우)도 안전하게 처리하기 위해
-  // name + race를 함께 써서 객체로 만들어 줍니다.
-  db.ref("players/" + id).update({
-    name: p.name,
-    race: next
-  })
-    .then(() => toast(`${p.name} → ${RACE_LABEL[next]}`))
-    .catch(err => toast("종족 변경 실패: " + err.message, true));
-}
-
-function deletePlayer(id, name) {
-  if (!confirm(`"${name}" 선수를 삭제할까요?\n(기존 경기 기록은 남습니다)`)) return;
-  db.ref("players/" + id).remove()
-    .then(() => toast("삭제됨"))
-    .catch(err => toast("삭제 실패: " + err.message, true));
-}
-
-/* 팀 구성 도우미 */
-function renderHelperSelect() {
-  if (!players.length) {
-    $("helperSelect").innerHTML = '<div class="empty">먼저 선수를 등록하세요</div>';
-    return;
-  }
-  const sorted = [...players].sort((a,b)=>a.name.localeCompare(b.name,"ko"));
-  $("helperSelect").innerHTML = sorted.map(p =>
-    `<label><input type="checkbox" value="${esc(p.name)}"> ${esc(p.name)}</label>`
-  ).join("");
-}
-$("btnHelperBalance").addEventListener("click", () => buildHelperTeams("balance"));
-$("btnHelperRandom").addEventListener("click", () => buildHelperTeams("random"));
-
-function buildHelperTeams(mode) {
-  const selected = qsa("#helperSelect input:checked").map(i => i.value);
-  if (selected.length < 2) return toast("2명 이상 선택하세요", true);
-
-  let A = [], B = [];
-  if (mode === "random") {
-    const shuffled = [...selected].sort(() => Math.random() - 0.5);
-    const half = Math.ceil(shuffled.length / 2);
-    A = shuffled.slice(0, half);
-    B = shuffled.slice(half);
-  } else {
-    const mmr = calcMMR(games);
-    const ranked = [...selected].sort((a,b) => {
-      const d = (mmr[b]||1000) - (mmr[a]||1000);
-      return d !== 0 ? d : Math.random() - 0.5;
-    });
-    ranked.forEach((p, i) => (i % 2 === 0 ? A : B).push(p));
-  }
-
-  $("helperResult").innerHTML = `
-    <div class="team-grid">
-      <div class="team-col A">
-        <h4>A팀 (${A.length}명)</h4>
-        ${A.map(n => `<div class="tp">${esc(n)}</div>`).join("")}
-      </div>
-      <div class="team-col B">
-        <h4>B팀 (${B.length}명)</h4>
-        ${B.map(n => `<div class="tp">${esc(n)}</div>`).join("")}
-      </div>
-    </div>
-    <p class="muted" style="text-align:center;">경기입력 탭에서 이 구성대로 배정해 주세요</p>
-  `;
-}
-
-/* 칩 배정 */
-function renderAssignChips() {
-  if (!players.length) {
-    $("assignList").innerHTML = '<div class="empty">먼저 선수를 등록하세요</div>';
-    $("assignHint").textContent = "";
-    renderSummary();
-    return;
-  }
-
-  const sorted = [...players].sort((a,b)=>a.name.localeCompare(b.name,"ko"));
-  const none = [], A = [], B = [];
-  sorted.forEach(p => {
-    const t = assign[p.name] || "";
-    if (t === "A") A.push(p.name);
-    else if (t === "B") B.push(p.name);
-    else none.push(p.name);
-  });
-
-  const chipHtml = (name, team) => {
-    const p = players.find(x => x.name === name);
-    const race = (p && p.race) || "R";
-    return `<button class="chip ${team}" data-name="${esc(name)}">${raceIcon(race,16)}${esc(name)}</button>`;
-  };
-
-  $("assignList").innerHTML = `
-    <div class="chip-section none">
-      <h5>미참여 (${none.length}명)</h5>
-      <div class="chips ${none.length?"":"empty"}">
-        ${none.length ? none.map(n => chipHtml(n, "")).join("") : "모두 배정됨"}
-      </div>
-    </div>
-    <div class="chip-section A">
-      <h5>A팀 (${A.length}명)</h5>
-      <div class="chips ${A.length?"":"empty"}">
-        ${A.length ? A.map(n => chipHtml(n, "A")).join("") : "미참여에서 이름을 눌러 옮겨주세요"}
-      </div>
-    </div>
-    <div class="chip-section B">
-      <h5>B팀 (${B.length}명)</h5>
-      <div class="chips ${B.length?"":"empty"}">
-        ${B.length ? B.map(n => chipHtml(n, "B")).join("") : ""}
-      </div>
-    </div>
-  `;
-
-  qsa("#assignList .chip").forEach(c => {
-    c.addEventListener("click", () => {
-      const name = c.dataset.name;
-      const cur = assign[name] || "";
-      const next = cur === "" ? "A" : cur === "A" ? "B" : "";
-      assign[name] = next;
-      renderAssignChips();
-    });
-  });
-
-  renderSummary();
-}
-
-function renderSummary() {
-  const A = Object.keys(assign).filter(n => assign[n] === "A");
-  const B = Object.keys(assign).filter(n => assign[n] === "B");
-  $("assignHint").textContent = (A.length || B.length) ? `(A ${A.length} / B ${B.length})` : "";
-  if (!A.length && !B.length) {
-    $("summaryBox").style.display = "none";
-    return;
-  }
-  $("summaryBox").style.display = "block";
-  $("summaryBox").innerHTML = `
-    <div><span class="a">A팀 (${A.length}명):</span> ${A.map(esc).join(", ") || "—"}</div>
-    <div><span class="b">B팀 (${B.length}명):</span> ${B.map(esc).join(", ") || "—"}</div>
-  `;
-}
-
-$("btnClearAssign").addEventListener("click", () => {
-  assign = {};
-  renderAssignChips();
-});
-
-$("btnSwapTeams").addEventListener("click", () => {
-  Object.keys(assign).forEach(n => {
-    if (assign[n] === "A") assign[n] = "B";
-    else if (assign[n] === "B") assign[n] = "A";
-  });
-  renderAssignChips();
-  toast("A↔B 교체됨");
-});
-
-$("btnCopyLast").addEventListener("click", () => {
-  const d = $("date").value;
-  const list = games.filter(g => g.date === d && g.id !== editingGameId)
-    .sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
-  if (!list.length) return toast("이 날 복사할 경기가 없습니다", true);
-  const last = list[0];
-  assign = {};
-  (last.teams.A||[]).forEach(n => assign[n] = "A");
-  (last.teams.B||[]).forEach(n => assign[n] = "B");
-  renderAssignChips();
-  toast("직전 경기 배정을 복사했어요");
-});
-
-/* 수정 모드 */
-function startEditGame(gameId) {
-  const g = games.find(x => x.id === gameId);
-  if (!g) return;
-  editingGameId = gameId;
-  $("date").value = g.date;
-  assign = {};
-  (g.teams.A||[]).forEach(n => assign[n] = "A");
-  (g.teams.B||[]).forEach(n => assign[n] = "B");
-  renderAssignChips();
-  renderEditModeUI(g);
-
-  qsa(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === "game"));
-  qsa(".page").forEach(p => p.classList.toggle("active", p.id === "game"));
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function cancelEdit() {
-  editingGameId = null;
-  assign = {};
-  renderAssignChips();
-  renderEditModeUI();
-}
-$("btnCancelEdit").addEventListener("click", cancelEdit);
-
-function renderEditModeUI(g) {
-  if (editingGameId && g) {
-    $("editBanner").style.display = "flex";
-    $("editHint").textContent = `(${g.date} · 원래 ${g.winner}팀 승)`;
-    $("btnWinA").textContent = "A팀 승으로 수정";
-    $("btnWinB").textContent = "B팀 승으로 수정";
-  } else {
-    $("editBanner").style.display = "none";
-    $("btnWinA").textContent = "A팀 승";
-    $("btnWinB").textContent = "B팀 승";
-  }
-}
-
-/* 저장 */
-$("btnWinA").addEventListener("click", () => saveGame("A"));
-$("btnWinB").addEventListener("click", () => saveGame("B"));
-
-function saveGame(winner) {
-  const A = Object.keys(assign).filter(n => assign[n] === "A");
-  const B = Object.keys(assign).filter(n => assign[n] === "B");
-  if (!A.length || !B.length) return toast("A/B 양 팀에 선수를 배정하세요", true);
-  if (!$("date").value) return toast("날짜를 선택하세요", true);
-
-  // 경기 시점의 종족 스냅샷 저장
-  const races = {};
-  [...A, ...B].forEach(n => {
-    const p = players.find(x => x.name === n);
-    races[n] = (p && p.race) || "R";
-  });
-
-  const btnA = $("btnWinA"), btnB = $("btnWinB");
-  btnA.disabled = btnB.disabled = true;
-
-  const data = {
-    date: $("date").value,
-    teams: { A, B },
-    races,
-    winner,
-    updatedAt: firebase.database.ServerValue.TIMESTAMP,
-    updatedBy: auth.currentUser ? auth.currentUser.uid : null
-  };
-
-  const op = editingGameId
-    ? db.ref("games/" + editingGameId).update(data)
-    : db.ref("games").push({
-        ...data,
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
-        createdBy: auth.currentUser ? auth.currentUser.uid : null
-      });
-
-  op.then(() => {
-      if (editingGameId) {
-        toast("경기 수정 완료");
-        cancelEdit();
-      } else {
-        toast(`${winner}팀 승리 저장 완료`);
-      }
-    })
-    .catch(err => toast((editingGameId ? "수정 실패: " : "저장 실패: ") + err.message, true))
-    .finally(() => { btnA.disabled = btnB.disabled = false; });
-}
-
-/* 이 날 경기 */
-function renderDayGames() {
-  const d = $("date").value;
-  const list = games
-    .filter(g => g.date === d)
-    .sort((a,b) => (a.createdAt||0) - (b.createdAt||0) || a.id.localeCompare(b.id));
-
-  $("dayHeader").textContent = `이 날 경기 (${list.length}경기)`;
-
-  if (!list.length) {
-    $("dayGames").innerHTML = '<div class="empty">해당 날짜 경기 기록 없음</div>';
-    return;
-  }
-  $("dayGames").innerHTML = list.map((g, i) => {
-    const aCls = g.winner === "A" ? "team-line winner" : "team-line loser";
-    const bCls = g.winner === "B" ? "team-line winner" : "team-line loser";
-    const editing = g.id === editingGameId ? ' style="background:#fff3cd;"' : "";
-    const nameWithRace = (n) => {
-      const r = (g.races && g.races[n]) || (players.find(p=>p.name===n)?.race) || "R";
-      return `${raceIcon(r,14)}${esc(n)}`;
-    };
-    return `
-      <div class="game-row"${editing}>
-        <div class="num">${i+1}.</div>
-        <div class="teams">
-          <div class="${aCls}">A: ${(g.teams.A||[]).map(nameWithRace).join(", ")}</div>
-          <div class="${bCls}">B: ${(g.teams.B||[]).map(nameWithRace).join(", ")}</div>
-        </div>
-        <div class="game-actions">
-          <button class="edit-game" data-id="${g.id}">수정</button>
-          <button class="del-game" data-id="${g.id}">삭제</button>
-        </div>
-      </div>
-    `;
-  }).join("");
-  qsa("#dayGames .edit-game").forEach(el =>
-    el.addEventListener("click", () => startEditGame(el.dataset.id)));
-  qsa("#dayGames .del-game").forEach(el =>
-    el.addEventListener("click", () => deleteGame(el.dataset.id)));
-}
-
-function deleteGame(id) {
-  if (!confirm("이 경기를 삭제할까요?")) return;
-  db.ref("games/" + id).remove()
-    .then(() => {
-      toast("경기 삭제됨");
-      if (editingGameId === id) cancelEdit();
-    })
-    .catch(err => toast("삭제 실패: " + err.message, true));
-}
-
-/* 통계 */
-function sortedGames(gs) {
-  return [...gs].sort((a,b) => {
-    const d = (a.date||"").localeCompare(b.date||"");
-    if (d !== 0) return d;
-    return (a.createdAt||0) - (b.createdAt||0) || a.id.localeCompare(b.id);
-  });
-}
-
-function buildStats(data) {
-  const stats = {};
-  data.forEach(g => {
-    ["A","B"].forEach(t => {
-      (g.teams[t]||[]).forEach(p => {
-        if (!stats[p]) stats[p] = { win:0, lose:0 };
-        if (t === g.winner) stats[p].win++; else stats[p].lose++;
-      });
-    });
-  });
-  return stats;
-}
-
-function calcMMR(data) {
-  const mmr = {};
-  const K = 20, BASE = 1000;
-  sortedGames(data).forEach(g => {
-    const SA = g.winner === "A" ? 1 : 0, SB = 1 - SA;
-    (g.teams.A||[]).forEach(p => {
-      if (mmr[p] === undefined) mmr[p] = BASE;
-      mmr[p] += K * (SA - 0.5);
-    });
-    (g.teams.B||[]).forEach(p => {
-      if (mmr[p] === undefined) mmr[p] = BASE;
-      mmr[p] += K * (SB - 0.5);
-    });
-  });
-  return mmr;
-}
-
-function calcMMRHistory(data, name) {
-  const hist = [];
-  let cur = 1000;
-  sortedGames(data).forEach(g => {
-    const inA = (g.teams.A||[]).includes(name);
-    const inB = (g.teams.B||[]).includes(name);
-    if (!inA && !inB) return;
-    const myTeam = inA ? "A" : "B";
-    const S = g.winner === myTeam ? 1 : 0;
-    cur += 20 * (S - 0.5);
-    hist.push(Math.round(cur));
-  });
-  return hist;
-}
-
-function calcStreaks(data, name) {
-  const results = [];
-  sortedGames(data).forEach(g => {
-    const inA = (g.teams.A||[]).includes(name);
-    const inB = (g.teams.B||[]).includes(name);
-    if (!inA && !inB) return;
-    const myTeam = inA ? "A" : "B";
-    results.push(g.winner === myTeam);
-  });
-
-  let longestW = 0, longestL = 0, runW = 0, runL = 0;
-  results.forEach(r => {
-    if (r) { runW++; runL = 0; if (runW > longestW) longestW = runW; }
-    else   { runL++; runW = 0; if (runL > longestL) longestL = runL; }
-  });
-
-  let cur = 0;
-  for (let i = results.length - 1; i >= 0; i--) {
-    if (cur === 0) cur = results[i] ? 1 : -1;
-    else if (cur > 0 && results[i]) cur++;
-    else if (cur < 0 && !results[i]) cur--;
-    else break;
-  }
-  return { longestW, longestL, current: cur, results };
-}
-
-function calcPairs(data, name) {
-  const mates = {}, opps = {};
-  data.forEach(g => {
-    const inA = (g.teams.A||[]).includes(name);
-    const inB = (g.teams.B||[]).includes(name);
-    if (!inA && !inB) return;
-    const myTeam = inA ? "A" : "B";
-    const otherTeam = inA ? "B" : "A";
-    const won = g.winner === myTeam;
-    (g.teams[myTeam]||[]).forEach(p => {
-      if (p === name) return;
-      if (!mates[p]) mates[p] = { win:0, lose:0 };
-      if (won) mates[p].win++; else mates[p].lose++;
-    });
-    (g.teams[otherTeam]||[]).forEach(p => {
-      if (!opps[p]) opps[p] = { win:0, lose:0 };
-      if (won) opps[p].win++; else opps[p].lose++;
-    });
-  });
-  return { mates, opps };
-}
-
-/* 모달 */
-$("btnCloseModal").addEventListener("click", closeModal);
-$("playerModal").addEventListener("click", e => {
-  if (e.target.id === "playerModal") closeModal();
-});
-function closeModal() {
-  currentModalPlayer = null;
-  $("playerModal").classList.remove("show");
-}
-
-function topPairs(obj, minGames=2, limit=3, asc=false) {
-  const arr = Object.keys(obj).map(n => {
-    const s = obj[n];
-    const total = s.win + s.lose;
-    return { n, w:s.win, l:s.lose, total, rate: total ? s.win/total : 0 };
-  }).filter(x => x.total >= minGames);
-  arr.sort((a,b) => asc ? (a.rate - b.rate) : (b.rate - a.rate));
-  return arr.slice(0, limit);
-}
-
-function pairHtml(list, emptyMsg) {
-  if (!list.length) return `<div class="muted" style="padding:4px 8px;">${emptyMsg}</div>`;
-  return list.map(x => `
-    <div class="pair-row">
-      <div class="pname">${esc(x.n)}</div>
-      <div class="pstat">${x.w}승 ${x.l}패 · ${(x.rate*100).toFixed(0)}%</div>
-    </div>
-  `).join("");
-}
-
-function mmrChartSvg(history) {
-  if (!history || history.length < 2) {
-    return '<div class="muted" style="padding:4px 8px;">경기 데이터가 더 필요합니다</div>';
-  }
-  const w = 320, h = 120, pad = 28;
-  const min = Math.min(...history, 1000) - 15;
-  const max = Math.max(...history, 1000) + 15;
-  const step = (w - pad*2) / Math.max(1, history.length - 1);
-  const y = v => h - pad/2 - ((v - min) / (max - min)) * (h - pad);
-  const pts = history.map((v, i) => `${pad + i*step},${y(v)}`).join(" ");
-  const base = y(1000);
-  return `
-    <svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:420px;">
-      <line x1="${pad}" y1="${base}" x2="${w-pad}" y2="${base}" stroke="#ccc" stroke-dasharray="3,3"/>
-      <polyline points="${pts}" fill="none" stroke="#ff6600" stroke-width="2"/>
-      ${history.map((v,i) => `<circle cx="${pad+i*step}" cy="${y(v)}" r="2.5" fill="#ff6600"/>`).join("")}
-      <text x="${pad-4}" y="${y(max)+4}" font-size="10" fill="#666" text-anchor="end">${Math.round(max)}</text>
-      <text x="${pad-4}" y="${y(min)+4}" font-size="10" fill="#666" text-anchor="end">${Math.round(min)}</text>
-      <text x="${pad-4}" y="${base+3}" font-size="10" fill="#888" text-anchor="end">1000</text>
-    </svg>
-  `;
-}
-
-/* 선수가 참가한 경기 목록 (수정/삭제 포함) */
-function renderPlayerGamesList(name) {
-  const list = sortedGames(games)
-    .filter(g => (g.teams.A||[]).includes(name) || (g.teams.B||[]).includes(name))
-    .reverse();
-
-  if (!list.length) {
-    return '<div class="muted" style="padding:4px 8px;">경기 기록이 없습니다</div>';
-  }
-  return list.map(g => {
-    const inA = (g.teams.A||[]).includes(name);
-    const myTeam = inA ? "A" : "B";
-    const won = g.winner === myTeam;
-    const getRace = n => (g.races && g.races[n]) || (players.find(p=>p.name===n)?.race) || "R";
-    const renderTeam = (plist, teamKey) => {
-      const isWin = g.winner === teamKey;
-      return `<div class="${isWin?"won":""}">${teamKey}: ${(plist||[]).map(p => {
-        const icon = raceIcon(getRace(p), 12);
-        return p === name ? `<span class="me">${icon}${esc(p)}</span>` : `${icon}${esc(p)}`;
-      }).join(", ")}</div>`;
-    };
-    return `
-      <div class="hist-item ${won?'W':'L'}">
-        <div class="hist-top">
-          <span class="hist-badge ${won?'W':'L'}">${won?'승':'패'}</span>
-          <span><b>${esc(g.date || '')}</b> · ${myTeam}팀 소속 · ${raceIcon(getRace(name),14)} ${RACE_LABEL[getRace(name)]}</span>
-        </div>
-        <div class="hist-teams">
-          ${renderTeam(g.teams.A, "A")}
-          ${renderTeam(g.teams.B, "B")}
-        </div>
-        <div class="hist-btns">
-          <button class="e" data-gid="${g.id}">✏️ 수정</button>
-          <button class="d" data-gid="${g.id}">🗑️ 삭제</button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-function openPlayerModal(name) {
-  const inner = $("playerModal").querySelector(".inner");
-  const savedScroll = inner ? inner.scrollTop : 0;
-
-  currentModalPlayer = name;
-
-  const stats = buildStats(games);
-  const mmr = calcMMR(games);
-  const s = stats[name] || { win:0, lose:0 };
-  const total = s.win + s.lose;
-  const rate = total ? (s.win/total*100).toFixed(1) : "0.0";
-  const streak = calcStreaks(games, name);
-  const history = calcMMRHistory(games, name);
-  const { mates, opps } = calcPairs(games, name);
-
-  const recent = streak.results.slice(-10);
-  const curStreakText = streak.current > 0 ? `${streak.current}연승 🔥`
-                      : streak.current < 0 ? `${-streak.current}연패 ❄️`
-                      : "-";
-
-  const bestMates = topPairs(mates, 2, 3, false);
-  const worstMates = topPairs(mates, 2, 3, true);
-  const nemesis = topPairs(opps, 2, 3, true);
-  const victim = topPairs(opps, 2, 3, false);
-
-  // 상대 종족별 승률 계산
-  const vsRace = { T:{w:0,l:0}, Z:{w:0,l:0}, P:{w:0,l:0} };
-  games.forEach(g => {
-    const inA = (g.teams.A||[]).includes(name);
-    const inB = (g.teams.B||[]).includes(name);
-    if (!inA && !inB) return;
-    const myTeam = inA ? "A" : "B";
-    const otherTeam = inA ? "B" : "A";
-    const won = g.winner === myTeam;
-    (g.teams[otherTeam]||[]).forEach(opp => {
-      const r = (g.races && g.races[opp]) || (players.find(p=>p.name===opp)?.race) || "R";
-      if (r === "R") return;
-      if (won) vsRace[r].w++; else vsRace[r].l++;
-    });
-  });
-  const mainPlayer = players.find(p => p.name === name);
-  const myRace = (mainPlayer && mainPlayer.race) || "R";
-
-  const matchupHtml = Object.keys(vsRace).map(r => {
-    const v = vsRace[r];
-    const t = v.w + v.l;
-    const rate = t ? (v.w/t*100).toFixed(0) : "-";
-    return `<div class="cell">
-      <div class="hd">vs ${raceIcon(r,14)} ${RACE_LABEL[r]}</div>
-      <div class="val">${v.w}승 ${v.l}패</div>
-      <div class="muted">${t ? rate+"%" : "데이터 없음"}</div>
-    </div>`;
-  }).join("");
-
-  $("modalBody").innerHTML = `
-    <h2>${esc(name)} ${raceIcon(myRace, 20)}</h2>
-    <div class="stat-row"><span>주 종족</span><b>${RACE_LABEL[myRace]}</b></div>
-    <div class="stat-row"><span>전적</span><b>${s.win}승 ${s.lose}패 (${total}경기)</b></div>
-    <div class="stat-row"><span>승률</span><b>${rate}%</b></div>
-    <div class="stat-row"><span>MMR</span><b>${Math.round(mmr[name]||1000)}</b></div>
-    <div class="stat-row"><span>현재 기록</span><b>${curStreakText}</b></div>
-    <div class="stat-row"><span>최장 연승 / 연패</span><b>${streak.longestW} / ${streak.longestL}</b></div>
-
-    <div class="section-title">🆚 종족 상성 (상대 기준)</div>
-    <div class="race-matchup">${matchupHtml}</div>
-
-    <div class="section-title">📊 최근 10경기</div>
-    <div class="form-dots">
-      ${recent.length
-        ? recent.map(r => `<div class="form-dot ${r?"W":"L"}">${r?"W":"L"}</div>`).join("")
-        : '<div class="muted">데이터 없음</div>'}
-    </div>
-
-    <div class="section-title">📈 MMR 추이</div>
-    <div>${mmrChartSvg(history)}</div>
-
-    <div class="section-title">🤝 최고의 파트너 (같은 팀일 때)</div>
-    ${pairHtml(bestMates, "데이터 없음 (최소 2경기 필요)")}
-
-    <div class="section-title">💔 어울리지 않는 파트너</div>
-    ${pairHtml(worstMates, "데이터 없음")}
-
-    <div class="section-title">⚔️ 천적 (상대로 만나면 자주 진)</div>
-    ${pairHtml(nemesis, "데이터 없음")}
-
-    <div class="section-title">🎯 호구 (상대로 만나면 자주 이긴)</div>
-    ${pairHtml(victim, "데이터 없음")}
-
-    <div class="section-title">📋 참가한 경기 (${total}경기) — 수정/삭제</div>
-    <div id="playerGamesList">${renderPlayerGamesList(name)}</div>
-  `;
-
-  // 수정/삭제 버튼 연결
-  qsa("#playerGamesList .e").forEach(el =>
-    el.addEventListener("click", () => {
-      closeModal();
-      startEditGame(el.dataset.gid);
-    }));
-  qsa("#playerGamesList .d").forEach(el =>
-    el.addEventListener("click", () => {
-      if (!confirm("이 경기를 삭제할까요?\n(MMR과 랭킹이 재계산됩니다)")) return;
-      db.ref("games/" + el.dataset.gid).remove()
-        .then(() => toast("경기 삭제됨"))
-        .catch(err => toast("삭제 실패: " + err.message, true));
-    }));
-
-  $("playerModal").classList.add("show");
-  requestAnimationFrame(() => {
-    const newInner = $("playerModal").querySelector(".inner");
-    if (newInner) newInner.scrollTop = savedScroll;
-  });
-}
-
-/* 랭킹 */
-function renderRank() {
-  const mmr = calcMMR(games);
-  const stats = buildStats(games);
-  const arr = players.map(p => ({
-    name: p.name,
-    mmr: Math.round(mmr[p.name] || 1000),
-    win: (stats[p.name]||{}).win || 0,
-    lose: (stats[p.name]||{}).lose || 0
-  })).sort((a,b) => b.mmr - a.mmr);
-
-  if (!arr.length) {
-    $("rankList").innerHTML = '<div class="empty">데이터 없음</div>';
-    return;
-  }
-  $("rankList").innerHTML = arr.map((x,i) => `
-    <div class="rank-row ${i<3?"top"+(i+1):""}" data-name="${esc(x.name)}">
-      <div class="rk">${i+1}</div>
-      <div class="nm">${esc(x.name)}</div>
-      <div class="sc">${x.mmr} · ${x.win}승 ${x.lose}패</div>
-    </div>
-  `).join("");
-  qsa("#rankList .rank-row").forEach(el =>
-    el.addEventListener("click", () => openPlayerModal(el.dataset.name)));
-}
-
-/* 동호회 통계 */
-function renderClubStats() {
-  if (!games.length) {
-    $("clubStats").innerHTML = '<div class="empty">경기 데이터가 없습니다</div>';
-    return;
-  }
-
-  const recent = sortedGames(games).slice(-20);
-  const recentWins = {};
-  recent.forEach(g => {
-    (g.teams[g.winner]||[]).forEach(p => {
-      recentWins[p] = (recentWins[p] || 0) + 1;
-    });
-  });
-  const mvp = Object.keys(recentWins).sort((a,b) => recentWins[b] - recentWins[a])[0];
-
-  let topStreakPlayer = null, topStreakN = 0;
-  players.forEach(p => {
-    const st = calcStreaks(games, p.name);
-    if (st.current > topStreakN) { topStreakN = st.current; topStreakPlayer = p.name; }
-  });
-
-  const duos = {};
-  games.forEach(g => {
-    ["A","B"].forEach(t => {
-      const team = g.teams[t] || [];
-      const won = g.winner === t;
-      for (let i = 0; i < team.length; i++) {
-        for (let j = i+1; j < team.length; j++) {
-          const key = [team[i], team[j]].sort().join("||");
-          if (!duos[key]) duos[key] = { win:0, lose:0 };
-          if (won) duos[key].win++; else duos[key].lose++;
-        }
-      }
-    });
-  });
-  let bestDuo = null, bestRate = 0, bestWin = 0;
-  Object.keys(duos).forEach(k => {
-    const d = duos[k], total = d.win + d.lose;
-    if (total >= 3) {
-      const r = d.win / total;
-      if (r > bestRate || (r === bestRate && d.win > bestWin)) {
-        bestRate = r; bestWin = d.win;
-        bestDuo = { names: k.split("||"), ...d };
-      }
-    }
-  });
-
-  const rivals = {};
-  games.forEach(g => {
-    const A = g.teams.A || [], B = g.teams.B || [];
-    A.forEach(a => B.forEach(b => {
-      const key = [a, b].sort().join("||");
-      if (!rivals[key]) rivals[key] = 0;
-      rivals[key]++;
-    }));
-  });
-  const topRival = Object.keys(rivals).sort((a,b) => rivals[b] - rivals[a])[0];
-  const topRivalN = topRival ? rivals[topRival] : 0;
-
-  const totalGames = games.length;
-  const activePlayers = new Set();
-  games.forEach(g => ["A","B"].forEach(t => (g.teams[t]||[]).forEach(p => activePlayers.add(p))));
-
-  const rows = [];
-  rows.push(`
-    <div class="club-stat">
-      <div class="title">🏆 최근 20경기 MVP</div>
-      <div>${mvp ? `<b>${esc(mvp)}</b> (${recentWins[mvp]}승)` : "-"}</div>
-    </div>`);
-  if (topStreakN >= 2) {
-    rows.push(`
-      <div class="club-stat">
-        <div class="title">🔥 현재 연승 챔피언</div>
-        <div><b>${esc(topStreakPlayer)}</b> (${topStreakN}연승)</div>
-      </div>`);
-  }
-  if (bestDuo) {
-    rows.push(`
-      <div class="club-stat">
-        <div class="title">💪 최강 듀오 (최소 3경기)</div>
-        <div><b>${esc(bestDuo.names[0])} + ${esc(bestDuo.names[1])}</b> · ${bestDuo.win}승 ${bestDuo.lose}패 (${(bestRate*100).toFixed(0)}%)</div>
-      </div>`);
-  }
-  if (topRival && topRivalN >= 3) {
-    const [r1, r2] = topRival.split("||");
-    rows.push(`
-      <div class="club-stat">
-        <div class="title">⚔️ 최다 맞대결 라이벌</div>
-        <div><b>${esc(r1)}</b> vs <b>${esc(r2)}</b> · ${topRivalN}번 맞붙음</div>
-      </div>`);
-  }
-  rows.push(`
-    <div class="club-stat">
-      <div class="title">🎮 누적</div>
-      <div>총 <b>${totalGames}</b>경기 · 참여 선수 <b>${activePlayers.size}</b>명</div>
-    </div>`);
-
-  $("clubStats").innerHTML = rows.join("");
-}
+function esc(t){return(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function fmtDate(d){if(!d||d.length<8)return d||"";return d.slice(4,6)+"-"+d.slice(6,8);}
 </script>
 </body>
 </html>
